@@ -262,29 +262,37 @@ async function startServer() {
       
       try {
         const possiblePaths = [
+          path.resolve(distPath, 'template.html'),
           path.resolve(distPath, 'index.html'),
+          path.resolve(process.cwd(), 'dist/template.html'),
           path.resolve(process.cwd(), 'dist/index.html'),
           path.resolve(process.cwd(), 'index.html'),
-          path.resolve(path.dirname(import.meta.url).replace('file://', ''), '../dist/index.html')
         ];
         
         let indexPath = '';
+        console.log(`[Server] Searching for template in ${req.path}`);
         for (const p of possiblePaths) {
           if (fs.existsSync(p)) {
             indexPath = p;
+            console.log(`[Server] Found template at: ${p}`);
             break;
           }
         }
 
         if (!indexPath) {
-          return res.status(404).send('Platform Error: index.html not found. Please redeploy.');
+          console.error('[Server] No template found in possible paths:', possiblePaths);
+          return res.status(404).send('Platform Error: template not found.');
         }
 
         const template = fs.readFileSync(indexPath, 'utf-8');
         const html = await injectMetaTags(template, req);
+        
+        // Disable search engine indexing for dynamic routes if needed, 
+        // but for Facebook we want it to work.
         res.status(200).set({ 
           'Content-Type': 'text/html',
-          'Cache-Control': 'public, max-age=0, must-revalidate'
+          'Cache-Control': 'public, max-age=0, must-revalidate',
+          'X-Meta-Injected': 'true'
         }).end(html);
       } catch (e) {
         next(e);

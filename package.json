@@ -7,7 +7,7 @@
     "dev": "tsx api/index.ts",
     "start": "tsx api/index.ts",
     "build": "vite build",
-    "vercel-build": "vite build && mv index.html .source-index.html",
+    "vercel-build": "vite build && mv dist/index.html dist/template.html",
     "preview": "vite preview",
     "lint": "tsc --noEmit"
   },
