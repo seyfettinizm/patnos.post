@@ -32,16 +32,19 @@ const injectMetaTags = async (html: string, req: express.Request) => {
   
   const host = req.headers.host || 'patnos-post.vercel.app';
   const protocol = req.headers['x-forwarded-proto'] || 'https';
-  const appUrl = process.env.APP_URL || `${protocol}://${host}`;
-  const fullUrl = `${appUrl}${req.originalUrl}`;
+  const appUrl = (process.env.APP_URL || `${protocol}://${host}`).replace(/\/$/, '');
+  
+  // Use req.url for cleaner path without query for the canonical URL
+  const pathOnly = req.url.split('?')[0].split('#')[0];
+  const fullUrl = `${appUrl}${pathOnly}`;
 
   try {
-    const path = req.path;
     let lang = (req.query.lang as string) || 'tr';
     if (!['tr', 'ku'].includes(lang)) lang = 'tr';
     
-    const parts = path.split('/').filter(Boolean);
-    let newsId = (parts[0] === 'news' && parts[1]) ? parts[1].split(/[?#]/)[0] : null;
+    // Improved newsId extraction
+    const parts = req.path.split('/').filter(Boolean);
+    let newsId = (parts[0] === 'news' && parts[1]) ? parts[1] : null;
     
     if (lang === 'ku') {
       title = "The Patnos Post | Li pey rastiyê, li ser şopa pêşerojê";
@@ -49,10 +52,9 @@ const injectMetaTags = async (html: string, req: express.Request) => {
       locale = 'ku_TR';
     }
 
-    if (newsId) {
-      console.log(`[MetaTags] Fetching news: ${newsId}`);
+    if (newsId && newsId.length > 5) {
+      console.log(`[MetaTags] Fetching from Supabase: ${newsId}`);
       const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://luphjhodlrnnnnbmwzad.supabase.co';
-      // Server-side preferred: SERVICE_ROLE_KEY
       const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
       if (supabaseKey && supabaseUrl) {
@@ -61,7 +63,7 @@ const injectMetaTags = async (html: string, req: express.Request) => {
           .from('news')
           .select('*')
           .eq('id', newsId)
-          .single();
+          .maybeSingle();
 
         if (newsItem && !error) {
           const newsTitle = newsItem.title?.[lang] || newsItem.title?.tr || newsItem.title || 'Haber';
@@ -75,19 +77,16 @@ const injectMetaTags = async (html: string, req: express.Request) => {
               ? newsItem.imageUrl 
               : `${appUrl}${newsItem.imageUrl.startsWith('/') ? '' : '/'}${newsItem.imageUrl}`;
           }
-          console.log(`[MetaTags] Found news: ${newsTitle}`);
+          console.log(`[MetaTags] Meta tags prepared for: ${newsTitle}`);
         } else if (error) {
-          console.warn(`[MetaTags] Supabase error for ${newsId}:`, error.message);
+          console.warn(`[MetaTags] News fetch failed:`, error.message);
         }
-      } else {
-        console.warn(`[MetaTags] Supabase credentials missing in environment`);
       }
     }
   } catch (error) {
     console.error('[MetaTags] Injection error:', error);
   }
 
-  // Final replacement - ensuring even on error we replace the placeholders
   const escape = (str: string) => {
     if (!str) return "";
     return str.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -230,10 +229,24 @@ async function startServer() {
       }
       
       try {
-        const indexPath = path.resolve(distPath, 'index.html');
-        if (!fs.existsSync(indexPath)) {
-          return res.status(404).send('Build files not found. Please run build.');
+        const possiblePaths = [
+          path.resolve(distPath, 'index.html'),
+          path.resolve(process.cwd(), 'dist/index.html'),
+          path.resolve(path.dirname(import.meta.url).replace('file://', ''), '../dist/index.html')
+        ];
+        
+        let indexPath = '';
+        for (const p of possiblePaths) {
+          if (fs.existsSync(p)) {
+            indexPath = p;
+            break;
+          }
         }
+
+        if (!indexPath) {
+          return res.status(404).send('Platform Error: index.html not found. Please redeploy.');
+        }
+
         const template = fs.readFileSync(indexPath, 'utf-8');
         const html = await injectMetaTags(template, req);
         res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
