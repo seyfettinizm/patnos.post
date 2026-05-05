@@ -34,9 +34,8 @@ const injectMetaTags = async (html: string, req: express.Request) => {
   const protocol = req.headers['x-forwarded-proto'] || 'https';
   const appUrl = (process.env.APP_URL || `${protocol}://${host}`).replace(/\/$/, '');
   
-  // Use req.url for cleaner path without query for the canonical URL
-  const pathOnly = req.url.split('?')[0].split('#')[0];
-  const fullUrl = `${appUrl}${pathOnly}`;
+  // Use req.originalUrl to preserve the language query param for Facebook
+  const fullUrl = `${appUrl}${req.originalUrl}`;
 
   try {
     let lang = (req.query.lang as string) || 'tr';
@@ -53,17 +52,34 @@ const injectMetaTags = async (html: string, req: express.Request) => {
       locale = 'tr_TR';
     }
 
-    // Improved newsId extraction
-    const parts = req.path.split('/').filter(Boolean);
-    let newsId = (parts[0] === 'news' && parts[1]) ? parts[1] : null;
-    
-    if (newsId && newsId.length > 5) {
-      console.log(`[MetaTags] Detected news ID: ${newsId}`);
-      const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://luphjhodlrnnnnbmwzad.supabase.co';
-      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+    const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://luphjhodlrnnnnbmwzad.supabase.co';
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
-      if (supabaseKey && supabaseUrl) {
-        const supabase = createClient(supabaseUrl, supabaseKey);
+    if (supabaseKey && supabaseUrl) {
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      // Fetch site settings for a better default image if possible
+      try {
+        const { data: settingsData } = await supabase
+          .from('settings')
+          .select('value')
+          .eq('id', 'header_settings')
+          .maybeSingle();
+        
+        if (settingsData?.value?.leftImageUrl) {
+          image = settingsData.value.leftImageUrl;
+          console.log(`[MetaTags] Using site logo as base image`);
+        }
+      } catch (err) {
+        console.warn(`[MetaTags] Settings fetch skipped`);
+      }
+
+      // Improved newsId extraction
+      const parts = req.path.split('/').filter(Boolean);
+      let newsId = (parts[0] === 'news' && parts[1]) ? parts[1] : null;
+      
+      if (newsId && newsId.length > 5) {
+        console.log(`[MetaTags] Detected news ID: ${newsId}`);
         const { data: newsItem, error } = await supabase
           .from('news')
           .select('*')
@@ -108,12 +124,12 @@ const injectMetaTags = async (html: string, req: express.Request) => {
   }
 
   return html
-    .replace(/<title>.*?<\/title>/, `<title>${escape(title)}</title>`)
     .replace(/__OG_TITLE__/g, escape(title))
     .replace(/__OG_DESCRIPTION__/g, escape(description))
     .replace(/__OG_IMAGE__/g, escape(image))
     .replace(/__OG_URL__/g, escape(fullUrl))
-    .replace(/__OG_LOCALE__/g, locale);
+    .replace(/__OG_LOCALE__/g, locale)
+    .replace(/<title>.*?<\/title>/, `<title>${escape(title)}</title>`);
 };
 
 // API Routes FIRST - No '*' should catch these
@@ -248,6 +264,7 @@ async function startServer() {
         const possiblePaths = [
           path.resolve(distPath, 'index.html'),
           path.resolve(process.cwd(), 'dist/index.html'),
+          path.resolve(process.cwd(), 'index.html'),
           path.resolve(path.dirname(import.meta.url).replace('file://', ''), '../dist/index.html')
         ];
         
