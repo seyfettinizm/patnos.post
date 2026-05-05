@@ -60,7 +60,7 @@ export function Header() {
             <div className="flex animate-marquee group">
               {breakingNews.concat(breakingNews).map((news, i) => (
                 <Link key={i} to={`/news/${news.id}`} className="hover:underline mr-12 text-sm font-medium">
-                  {news.title}
+                  {news.title.tr}
                 </Link>
               ))}
             </div>

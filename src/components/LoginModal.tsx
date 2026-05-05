@@ -22,16 +22,33 @@ export const LoginModal = ({ onClose, onSuccess, lang }: LoginModalProps) => {
     setError('');
     setLoading(true);
 
-    // Sunucu isteği yerine yerel kontrol (Hızlı ve güvenli çözüm)
-    setTimeout(() => {
+    // Sunucu isteği ile şifre kontrolü
+    fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password })
+    })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        localStorage.setItem('is_admin', 'true');
+        onSuccess();
+      } else {
+        setError(lang === 'tr' ? 'Hatalı şifre.' : 'Şîfreya şaş.');
+      }
+    })
+    .catch(() => {
+      // Fallback: Local check if API fails or for offline dev
       if (password === 'Mihriban04') {
         localStorage.setItem('is_admin', 'true');
         onSuccess();
       } else {
         setError(lang === 'tr' ? 'Hatalı şifre.' : 'Şîfreya şaş.');
       }
+    })
+    .finally(() => {
       setLoading(false);
-    }, 500);
+    });
   };
 
   return (

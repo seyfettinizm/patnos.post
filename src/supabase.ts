@@ -1,12 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 
 const getRuntimeConfig = () => {
+  // AI Studio Secrets (Environment Variables) prioritize over localStorage
+  const envUrl = import.meta.env.VITE_SUPABASE_URL;
+  const envAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  if (envUrl && envUrl.length > 10 && !envUrl.includes('placeholder')) {
+    return { url: envUrl, anonKey: envAnonKey || '' };
+  }
+
   const localUrl = localStorage.getItem('VITE_SUPABASE_URL');
   const localAnonKey = localStorage.getItem('VITE_SUPABASE_ANON_KEY');
   
   return {
-    url: localUrl || import.meta.env.VITE_SUPABASE_URL || '',
-    anonKey: localAnonKey || import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+    url: localUrl || envUrl || '',
+    anonKey: localAnonKey || envAnonKey || ''
   };
 };
 
