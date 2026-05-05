@@ -30,7 +30,7 @@ const injectMetaTags = async (html: string, req: express.Request) => {
   let image = "https://static.wixstatic.com/media/7e2174_e230755889444a418254ba8ec11e24f7~mv2.png";
   let locale = 'tr_TR';
   
-  const host = req.headers.host || 'patnos-post.vercel.app';
+  const host = req.headers.host || 'patnos-post-rose.vercel.app';
   const protocol = req.headers['x-forwarded-proto'] || 'https';
   const appUrl = (process.env.APP_URL || `${protocol}://${host}`).replace(/\/$/, '');
   
@@ -42,18 +42,23 @@ const injectMetaTags = async (html: string, req: express.Request) => {
     let lang = (req.query.lang as string) || 'tr';
     if (!['tr', 'ku'].includes(lang)) lang = 'tr';
     
+    // Default metadata for the site
+    if (lang === 'ku') {
+      title = "The Patnos Post | Li pey rastiyê, li ser şopa pêşerojê";
+      description = "Nûçeyên herî dawî ji Patnosê. Çanda me, nûçeyên me, her tişt li vir e.";
+      locale = 'ku_TR';
+    } else {
+      title = "The Patnos Post | Gerçeğin Peşinde, Geleceğin İzinde";
+      description = "Patnos Haberleri - Yerel Gündem, Kültür ve Yaşamın Kalbi.";
+      locale = 'tr_TR';
+    }
+
     // Improved newsId extraction
     const parts = req.path.split('/').filter(Boolean);
     let newsId = (parts[0] === 'news' && parts[1]) ? parts[1] : null;
     
-    if (lang === 'ku') {
-      title = "The Patnos Post | Li pey rastiyê, li ser şopa pêşerojê";
-      description = "Nûçeyên herî dawî, naveroka jiyan û çandê ji Patnos û derdora wê.";
-      locale = 'ku_TR';
-    }
-
     if (newsId && newsId.length > 5) {
-      console.log(`[MetaTags] Fetching from Supabase: ${newsId}`);
+      console.log(`[MetaTags] Detected news ID: ${newsId}`);
       const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || 'https://luphjhodlrnnnnbmwzad.supabase.co';
       const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
@@ -67,7 +72,7 @@ const injectMetaTags = async (html: string, req: express.Request) => {
 
         if (newsItem && !error) {
           const newsTitle = newsItem.title?.[lang] || newsItem.title?.tr || newsItem.title || 'Haber';
-          const newsExcerpt = newsItem.excerpt?.[lang] || newsItem.excerpt?.tr || (newsItem.content?.[lang] || newsItem.content?.tr || '').substring(0, 160) || description;
+          const newsExcerpt = newsItem.excerpt?.[lang] || newsItem.excerpt?.tr || (newsItem.content?.[lang] || newsItem.content?.tr || '').substring(0, 200) || description;
           
           title = `${newsTitle} | The Patnos Post`;
           description = newsExcerpt;
@@ -77,22 +82,33 @@ const injectMetaTags = async (html: string, req: express.Request) => {
               ? newsItem.imageUrl 
               : `${appUrl}${newsItem.imageUrl.startsWith('/') ? '' : '/'}${newsItem.imageUrl}`;
           }
-          console.log(`[MetaTags] Meta tags prepared for: ${newsTitle}`);
+          console.log(`[MetaTags] Successfully prepared metadata for: ${newsTitle}`);
         } else if (error) {
-          console.warn(`[MetaTags] News fetch failed:`, error.message);
+          console.warn(`[MetaTags] Supabase fetch error:`, error.message);
         }
       }
     }
   } catch (error) {
-    console.error('[MetaTags] Injection error:', error);
+    console.error('[MetaTags] Critical Injection error:', error);
   }
 
   const escape = (str: string) => {
     if (!str) return "";
-    return str.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return str.toString()
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
   };
 
+  // Ensure absolute image URL for Facebook - MUST be absolute and high quality
+  if (!image || !image.startsWith('http')) {
+    image = `${appUrl}/og-image.jpg`;
+  }
+
   return html
+    .replace(/<title>.*?<\/title>/, `<title>${escape(title)}</title>`)
     .replace(/__OG_TITLE__/g, escape(title))
     .replace(/__OG_DESCRIPTION__/g, escape(description))
     .replace(/__OG_IMAGE__/g, escape(image))
@@ -249,7 +265,10 @@ async function startServer() {
 
         const template = fs.readFileSync(indexPath, 'utf-8');
         const html = await injectMetaTags(template, req);
-        res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+        res.status(200).set({ 
+          'Content-Type': 'text/html',
+          'Cache-Control': 'public, max-age=0, must-revalidate'
+        }).end(html);
       } catch (e) {
         next(e);
       }
