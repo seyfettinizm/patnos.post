@@ -98,46 +98,54 @@ export default function App() {
         {/* HEADER */}
         <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-white/90 backdrop-blur-md shadow-lg py-2' : 'bg-white py-4'}`}>
           <div className="news-container">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="p-2 hover:bg-gray-100 rounded-full md:hidden">
-                  {isMenuOpen ? <X /> : <Menu />}
-                </button>
-                <div className="hidden md:flex items-center">
-                   <img src={settings.leftImageUrl} alt="Logo Left" className="h-12 w-auto object-contain" referrerPolicy="no-referrer" />
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center">
-                <h1 
+            <div className="flex flex-col items-center gap-6">
+              {/* Logo Section */}
+              <div className="w-full flex justify-center">
+                <img 
+                  src="https://static.wixstatic.com/media/7e2174_e230755889444a418254ba8ec11e24f7~mv2.png" 
+                  alt="The Patnos Post Logo" 
+                  className="max-h-[80px] md:max-h-[120px] w-auto object-contain cursor-pointer"
                   onClick={() => navigate(`/?lang=${lang}`)}
-                  className="font-anton text-3xl md:text-5xl lg:text-7xl tracking-tighter cursor-pointer hover:text-brand-accent transition-colors text-center"
-                >
-                  THE PATNOS POST
-                </h1>
-                <div className="hidden md:flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.3em] font-sans text-gray-400 mt-1">
-                  <span>{new Date().toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'ku-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-                </div>
+                  referrerPolicy="no-referrer"
+                />
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="hidden md:flex items-center mr-4">
-                   <img src={settings.rightImageUrl} alt="Logo Right" className="h-12 w-auto object-contain" referrerPolicy="no-referrer" />
+              {/* Navigation and Language Section */}
+              <div className="w-full flex flex-wrap items-center justify-center gap-4 border-t border-gray-100 pt-4">
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => { setLang('tr'); setSearchParams({ lang: 'tr' }); }}
+                    className={`px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${lang === 'tr' ? 'bg-brand-accent text-white shadow-md' : 'bg-gray-100 hover:bg-gray-200'}`}
+                  >
+                    TÜRKÇE
+                  </button>
+                  <button 
+                    onClick={() => { setLang('ku'); setSearchParams({ lang: 'ku' }); }}
+                    className={`px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${lang === 'ku' ? 'bg-brand-accent text-white shadow-md' : 'bg-gray-100 hover:bg-gray-200'}`}
+                  >
+                    KURDÎ
+                  </button>
                 </div>
-                <button 
-                  onClick={toggleLang}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-full shadow-sm text-[11px] font-bold uppercase tracking-widest transition-all"
+
+                <div className="h-4 w-px bg-gray-200 hidden md:block" />
+
+                <a 
+                  href="https://www.patnosum.com" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white hover:bg-black rounded-full shadow-sm text-[11px] font-bold uppercase tracking-widest transition-all"
                 >
                   <Globe size={14} className="text-brand-accent" />
-                  {lang === 'tr' ? 'KURDÎ' : 'TÜRKÇE'}
-                </button>
+                  SİTE ANASAYFA
+                </a>
+
                 {isAdmin ? (
-                  <button onClick={() => setShowAdmin(true)} className="p-3 bg-brand-accent text-white rounded-full shadow-lg hover:scale-110 transition-all">
-                    <User size={20} />
+                  <button onClick={() => setShowAdmin(true)} className="p-2 bg-brand-accent text-white rounded-full shadow-lg hover:scale-110 transition-all">
+                    <User size={18} />
                   </button>
                 ) : (
-                  <button onClick={() => setShowLogin(true)} className="p-3 text-gray-400 hover:text-brand-accent transition-all hidden md:block">
-                    <User size={20} />
+                  <button onClick={() => setShowLogin(true)} className="p-2 text-gray-400 hover:text-brand-accent transition-all">
+                    <User size={18} />
                   </button>
                 )}
               </div>
@@ -145,62 +153,20 @@ export default function App() {
           </div>
         </header>
 
-        {/* NAVIGATION */}
-        <nav className="hidden md:block border-y border-gray-100 bg-white sticky top-[88px] z-40">
-          <div className="news-container">
-            <ul className="flex items-center justify-center gap-10 py-4">
-              {MENU_LINKS.map((link) => (
-                <li key={link.label}>
-                  <a href={link.url} target="_blank" rel="noopener noreferrer" className="text-[11px] font-black tracking-[0.2em] hover:text-brand-accent transition-colors">
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </nav>
+        {/* Adjusting padding-top to account for header */}
+        <div className={scrolled ? "pt-[180px]" : "pt-[220px]"} />
 
-        {/* MOBILE MENU */}
-        <AnimatePresence>
-          {isMenuOpen && (
-            <>
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMenuOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]" />
-              <motion.aside initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} className="fixed inset-y-0 left-0 w-[80%] bg-white z-[70] p-8 shadow-2xl flex flex-col">
-                <div className="flex justify-between items-center mb-12">
-                  <h2 className="font-anton text-2xl tracking-tighter">THE PATNOS POST</h2>
-                  <button onClick={() => setIsMenuOpen(false)}><X size={32} /></button>
-                </div>
-                <nav className="flex-grow">
-                  <ul className="space-y-6">
-                    {MENU_LINKS.map(link => (
-                      <li key={link.label}><a href={link.url} className="text-xl font-black uppercase tracking-widest block">{link.label}</a></li>
-                    ))}
-                    <div className="h-px bg-gray-100 my-8" />
-                    {CATEGORIES.map(cat => (
-                      <li key={cat.id}>
-                        <button onClick={() => { setActiveCategory(cat.id); setIsMenuOpen(false); navigate(`/?lang=${lang}`); }} className={`text-lg font-bold uppercase tracking-widest block ${activeCategory === cat.id ? 'text-brand-accent' : 'text-gray-400'}`}>
-                          {cat[lang]}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
-              </motion.aside>
-            </>
-          )}
-        </AnimatePresence>
-
-        {/* TICKER */}
+        {/* TICKER - Moved to prominent position */}
         {breakingNews.length > 0 && (
-          <div className="bg-brand-primary text-white py-3 overflow-hidden border-b border-brand-accent/30 mt-[80px] md:mt-[145px]">
+          <div className="bg-brand-primary text-white py-3 overflow-hidden border-b border-brand-accent/30 mt-4">
             <div className="news-container flex items-center">
-              <div className="bg-brand-accent text-[10px] font-black px-3 py-1 mr-6 rounded-sm whitespace-nowrap animate-pulse">
+              <div className="bg-brand-accent text-[10px] font-bold px-3 py-1 mr-6 rounded-sm whitespace-nowrap animate-pulse">
                 {t.breakingNews}
               </div>
               <div className="flex animate-[ticker_40s_linear_infinite] whitespace-nowrap gap-16 font-medium text-sm">
                 {breakingNews.map((item) => (
                   <span key={item.id} className="cursor-pointer hover:text-brand-accent" onClick={() => navigate(`/news/${item.id}?lang=${lang}`)}>
-                    {item.title[lang]}
+                    {item.title[lang] || item.title.tr}
                   </span>
                 ))}
               </div>
@@ -248,17 +214,32 @@ export default function App() {
                     )}
                     <div className="grid md:grid-cols-2 gap-x-8 gap-y-16">
                       {filteredNews.length > 0 ? (
-                        filteredNews.map(item => <NewsCard key={item.id} item={item} lang={lang} />)
+                        filteredNews.slice(0, 10).map(item => <NewsCard key={item.id} item={item} lang={lang} />)
                       ) : (
-                        <div className="col-span-full py-20 text-center text-gray-400 uppercase font-black text-xs">Haber Bulunamadı</div>
+                        <div className="col-span-full py-20 text-center text-gray-400 uppercase font-bold text-xs">Haber Bulunamadı</div>
                       )}
+                    </div>
+
+                    {/* Categories under news module */}
+                    <div className="mt-20 pt-10 border-t border-gray-100">
+                      <div className="flex flex-wrap items-center justify-center gap-4">
+                        {CATEGORIES.filter(c => c.id !== 'all').map(cat => (
+                          <button 
+                            key={cat.id} 
+                            onClick={() => { setActiveCategory(cat.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+                            className="px-6 py-2 border border-gray-200 hover:border-brand-accent hover:text-brand-accent rounded-full text-xs font-bold uppercase tracking-widest transition-all"
+                          >
+                            {cat[lang]}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
 
                   <aside className="lg:w-[30%] space-y-12">
                      <div className="bg-brand-primary text-white p-8 rounded-2xl shadow-2xl relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-brand-accent/20 rounded-full blur-3xl -mr-16 -mt-16 group-hover:bg-brand-accent/40 transition-all duration-700" />
-                        <h3 className="text-xl font-anton uppercase mb-2">{t.newsletterTitle}</h3>
+                        <h3 className="text-xl font-anton mb-2">{t.newsletterTitle}</h3>
                         <p className="text-[11px] text-gray-400 mb-6 italic">{t.newsletterDesc}</p>
                         <div className="flex border-b border-white/20 pb-2">
                            <input type="email" placeholder={t.newsletterPlaceholder} className="bg-transparent border-none outline-none text-xs flex-1" />
@@ -269,7 +250,7 @@ export default function App() {
                      <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
                         <div className="flex items-center gap-3 mb-8">
                            <TrendingUp className="text-brand-accent" size={20} />
-                           <h3 className="font-anton text-xl uppercase">{t.popularNews}</h3>
+                           <h3 className="font-anton text-xl">{t.popularNews}</h3>
                         </div>
                         <div className="space-y-8">
                            {popularNews.map((item, idx) => (

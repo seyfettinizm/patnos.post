@@ -72,7 +72,7 @@ export const NewsSlider = ({ items, lang }: NewsSliderProps) => {
                   <div className="h-[1px] w-12 bg-white/30"></div>
                   <span className="text-white/80 text-[10px] font-black tracking-widest uppercase">{currentItem.date}</span>
                 </div>
-                <h2 className="text-3xl md:text-5xl lg:text-7xl font-anton text-white leading-[1.2] mb-6 max-w-4xl tracking-normal uppercase drop-shadow-2xl">
+                <h2 className="text-3xl md:text-5xl lg:text-7xl font-anton text-white leading-[1.2] mb-6 max-w-4xl tracking-normal drop-shadow-2xl">
                   {displayTitle}
                 </h2>
                 <div className="flex items-center gap-2 text-white/90 text-sm font-bold uppercase tracking-widest">

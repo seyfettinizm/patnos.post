@@ -186,7 +186,7 @@ export const NewsDetail = ({ item, lang, onClose }: NewsDetailProps) => {
               <span className="inline-block px-3 py-1 bg-brand-accent text-white text-[10px] font-bold uppercase tracking-widest rounded mb-4">
                 {category}
               </span>
-              <h1 className="text-2xl md:text-5xl font-anton leading-[1.2] mb-6 uppercase tracking-normal">
+              <h1 className="text-2xl md:text-5xl font-anton leading-[1.2] mb-6 tracking-normal">
                 {displayTitle}
               </h1>
               <div className="flex flex-wrap items-center gap-6 text-xs text-gray-300 font-medium uppercase tracking-widest">
@@ -198,11 +198,11 @@ export const NewsDetail = ({ item, lang, onClose }: NewsDetailProps) => {
           </div>
 
           <div className="max-w-3xl mx-auto px-6 md:px-10 py-12">
-            <div className="text-xl font-serif italic text-gray-500 border-l-4 border-brand-accent pl-6 mb-10 leading-relaxed">
+            <div className="text-xl font-medium italic text-gray-500 border-l-4 border-brand-accent pl-6 mb-10 leading-relaxed">
               {displayExcerpt}
             </div>
 
-            <div className="prose prose-lg max-w-none font-serif">
+            <div className="prose prose-lg max-w-none font-sans text-gray-800">
               {renderContent(displayContent)}
             </div>
 

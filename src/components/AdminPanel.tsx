@@ -48,6 +48,8 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
   const [isImporting, setIsImporting] = useState(false);
 
   const mainFileInputRef = useRef<HTMLInputElement>(null);
+  const contentFileInputRef = useRef<HTMLInputElement>(null);
+  const videoFileInputRef = useRef<HTMLInputElement>(null);
   const leftHeaderInputRef = useRef<HTMLInputElement>(null);
   const rightHeaderInputRef = useRef<HTMLInputElement>(null);
   const contentInputRef = useRef<HTMLTextAreaElement>(null);
@@ -205,7 +207,7 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
     }
   };
 
-  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>, target: 'main' | 'content' | 'header-left' | 'header-right') => {
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>, target: 'main' | 'content' | 'video' | 'header-left' | 'header-right') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -229,13 +231,42 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
         await updateSettings({ ...settings, [field]: url });
       } else if (target === 'main') {
         setFormData(prev => ({ ...prev, imageUrl: url }));
+      } else if (target === 'video') {
+        const tag = `\n\n[VIDEO:${url}]\n\n`;
+        const currentContent = formData.content?.[activeLangTab] || '';
+        
+        if (contentInputRef.current) {
+          const start = contentInputRef.current.selectionStart;
+          const end = contentInputRef.current.selectionEnd;
+          const newContent = currentContent.substring(0, start) + tag + currentContent.substring(end);
+          setFormData(prev => ({
+            ...prev,
+            content: { ...prev.content, [activeLangTab]: newContent } as any
+          }));
+        } else {
+          setFormData(prev => ({
+            ...prev,
+            content: { ...prev.content, [activeLangTab]: currentContent + tag } as any
+          }));
+        }
       } else {
         const tag = `\n\n[IMAGE:${url}]\n\n`;
-        const current = formData.content?.[activeLangTab] || '';
-        setFormData(prev => ({
-          ...prev,
-          content: { ...prev.content, [activeLangTab]: current + tag } as any
-        }));
+        const currentContent = formData.content?.[activeLangTab] || '';
+        
+        if (contentInputRef.current) {
+          const start = contentInputRef.current.selectionStart;
+          const end = contentInputRef.current.selectionEnd;
+          const newContent = currentContent.substring(0, start) + tag + currentContent.substring(end);
+          setFormData(prev => ({
+            ...prev,
+            content: { ...prev.content, [activeLangTab]: newContent } as any
+          }));
+        } else {
+          setFormData(prev => ({
+            ...prev,
+            content: { ...prev.content, [activeLangTab]: currentContent + tag } as any
+          }));
+        }
       }
     } catch (error) {
       alert(lang === 'tr' ? 'Yükleme hatası' : 'Çewtiya barkirinê');
@@ -292,48 +323,53 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-0 md:p-6 overflow-hidden">
-      <div className="bg-white w-full max-w-7xl h-full md:h-[95vh] md:rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-200">
+      <div className="bg-white w-full max-w-7xl h-full md:h-[95vh] md:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-gray-100">
         
         {/* PANEL HEADER */}
-        <div className="bg-gray-900 text-white px-6 py-4 flex justify-between items-center shrink-0">
-          <div className="flex items-center gap-6">
-            <h2 className="text-xl font-bold flex items-center gap-3 tracking-tight">
-              <Settings className="text-brand-accent animate-pulse-slow" size={24} />
-              {t.adminPanel}
-            </h2>
+        <div className="bg-white border-b border-gray-100 px-8 py-6 flex justify-between items-center shrink-0">
+          <div className="flex items-center gap-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-brand-accent/10 rounded-xl flex items-center justify-center">
+                <Settings className="text-brand-accent" size={24} />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                {t.adminPanel}
+              </h2>
+            </div>
             
-            <div className="hidden md:flex bg-white/10 p-1 rounded-xl">
+            <div className="hidden md:flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
               <button 
                 onClick={() => { setActiveTab('news'); setImportMode(false); setIsAdding(false); }}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'news' ? 'bg-brand-accent text-white' : 'text-gray-300 hover:text-white'}`}
+                className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === 'news' ? 'bg-white text-brand-primary shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
               >
                 HABERLER
               </button>
               <button 
                 onClick={() => setActiveTab('settings')}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${activeTab === 'settings' ? 'bg-brand-accent text-white' : 'text-gray-300 hover:text-white'}`}
+                className={`px-6 py-2.5 rounded-xl text-xs font-bold transition-all ${activeTab === 'settings' ? 'bg-white text-brand-primary shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
               >
                 AYARLAR
               </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <button 
               onClick={() => setShowKeySettings(!showKeySettings)}
-              className="p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+              className="p-3 text-gray-400 hover:text-brand-accent hover:bg-gray-50 rounded-xl transition-all"
               title="API Anahtarı"
             >
-              <Key size={18} />
+              <Key size={20} />
             </button>
-            <div className="w-px h-6 bg-white/20 mx-1" />
+            <div className="w-px h-8 bg-gray-100" />
             <button 
               onClick={onLogout}
-              className="flex items-center gap-2 px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-950/30 rounded-lg transition-all font-bold text-xs"
+              className="group flex items-center gap-2 px-6 py-3 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all font-bold text-xs"
             >
-              <LogOut size={16} /> <span>ÇIKIŞ</span>
+              <LogOut size={18} className="group-hover:rotate-12 transition-transform" /> 
+              <span>ÇIKIŞ YAP</span>
             </button>
-            <button onClick={onClose} className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all">
+            <button onClick={onClose} className="p-3 bg-gray-50 hover:bg-gray-100 text-gray-400 hover:text-gray-900 rounded-xl transition-all">
               <X size={24} />
             </button>
           </div>
@@ -469,12 +505,29 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
                                   <button onClick={() => autoTranslateField('content')} className="text-xs text-brand-accent font-bold flex items-center gap-1 hover:underline">
                                     {isAutoTranslating === 'content' ? <Loader2 className="animate-spin" size={12}/> : <Languages size={12}/>} AI Çevir
                                   </button>
-                                  <button onClick={() => mainFileInputRef.current?.click()} className="text-xs text-blue-600 font-bold flex items-center gap-1 hover:underline">
+                                  <button onClick={() => contentFileInputRef.current?.click()} className="text-xs text-blue-600 font-bold flex items-center gap-1 hover:underline">
                                     <ImageIcon size={12}/> Resim Ekle
                                   </button>
+                                  <input 
+                                    type="file" 
+                                    ref={contentFileInputRef} 
+                                    onChange={e => handleImageUpload(e, 'content')} 
+                                    className="hidden" 
+                                    accept="image/*" 
+                                  />
                                   <button onClick={handleVideoAdd} className="text-xs text-orange-600 font-bold flex items-center gap-1 hover:underline">
-                                    <Video size={12}/> Video Ekle
+                                    <Video size={12}/> Video URL
                                   </button>
+                                  <button onClick={() => videoFileInputRef.current?.click()} className="text-xs text-purple-600 font-bold flex items-center gap-1 hover:underline">
+                                    <Upload size={12}/> Video Yükle
+                                  </button>
+                                  <input 
+                                    type="file" 
+                                    ref={videoFileInputRef} 
+                                    onChange={e => handleImageUpload(e, 'video')} 
+                                    className="hidden" 
+                                    accept="video/*" 
+                                  />
                                 </div>
                               </div>
                               <textarea 

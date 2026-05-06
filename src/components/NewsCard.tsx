@@ -49,11 +49,11 @@ export const NewsCard = ({ item, lang, featured = false }: NewsCardProps) => {
             <span>{item.readTime} {lang === 'tr' ? 'OKUMA' : 'XWENDIN'}</span>
           </div>
           
-          <h3 className="font-anton text-xl md:text-2xl uppercase leading-snug group-hover:text-brand-accent transition-colors mb-3 tracking-normal">
+          <h3 className="font-anton text-xl md:text-2xl leading-snug group-hover:text-brand-accent transition-colors mb-3 tracking-normal">
             {displayTitle}
           </h3>
           
-          <p className="text-gray-600 leading-relaxed text-sm line-clamp-2">
+          <p className="text-gray-600 leading-relaxed text-sm line-clamp-2 italic">
             {displayExcerpt}
           </p>
           
