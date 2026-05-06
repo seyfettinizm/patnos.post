@@ -81,6 +81,7 @@ export const translateContent = async (text: string, targetLang: 'tr' | 'ku') =>
     }
     
     console.log(`[GeminiService] Calling model gemini-1.5-flash...`);
+    // Try gemini-1.5-flash, which is standard
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     const prompt = `You are a professional translator. Translate the following text into ${targetLang === 'tr' ? 'Turkish' : 'Kurdish (Kurmanji dialect)'}. 
@@ -106,11 +107,16 @@ export const translateContent = async (text: string, targetLang: 'tr' | 'ku') =>
     return translatedText.trim();
   } catch (error: any) {
     console.error("Translation error details:", error);
+    
     // Extract meaningful message from Gemini error
     if (error?.message) {
-      if (error.message.includes('API_KEY_INVALID')) throw new Error('API_KEY_INVALID');
-      if (error.message.includes('permission denied')) throw new Error('PERMISSION_DENIED');
-      if (error.status === 403) throw new Error('API_KEY_RESTRICTED');
+      if (error.message.includes('API_KEY_INVALID') || error.message.includes('invalid') || error.message.includes('403')) {
+        throw new Error('Geçersiz API Anahtarı. Lütfen anahtarınızı kontrol edin.');
+      }
+      if (error.message.includes('not found') || error.message.includes('404')) {
+        throw new Error('Model bulunamadı (404). Lütfen API anahtarınızın Gemini 1.5 Flash modeline erişimi olduğundan emin olun.');
+      }
+      if (error.message.includes('permission denied')) throw new Error('Erişim engellendi. API anahtarınız bu işlem için yetkili olmayabilir.');
     }
     throw error;
   }
