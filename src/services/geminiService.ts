@@ -84,7 +84,8 @@ export const translateContent = async (text: string, targetLang: 'tr' | 'ku') =>
     // List of models to try in order of preference
     const modelsToTry = [
       "gemini-1.5-flash", 
-      "gemini-1.5-flash-latest", 
+      "gemini-1.5-flash-latest",
+      "gemini-1.5-flash-001",
       "gemini-1.5-flash-002",
       "gemini-1.5-flash-8b",
       "gemini-pro"
@@ -127,7 +128,7 @@ export const translateContent = async (text: string, targetLang: 'tr' | 'ku') =>
 
     if (!translatedText || translatedText.trim() === "") {
       if (lastError?.message?.includes('404') || lastError?.message?.includes('not found')) {
-        throw new Error('MODEL BULUNAMADI (404): Anahtarınız geçerli ancak bu projedeki modellere erişim izniniz yok. Lütfen aistudio.google.com üzerinden "Create API key in new project" diyerek YENİ bir anahtar alıp deneyin.');
+        throw new Error('MODEL BULUNAMADI (404): Anahtarınız geçerli ancak Gemini modellerine bu hesap üzerinden erişim sağlanamıyor. Lütfen AI Studio\'da "Create API key in NEW project" seçeneğiyle yeni bir anahtar oluşturun.');
       }
       throw lastError || new Error("EMPTY_RESPONSE");
     }
