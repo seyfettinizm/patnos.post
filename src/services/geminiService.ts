@@ -66,41 +66,52 @@ export const translateContent = async (text: string, targetLang: 'tr' | 'ku') =>
   if (!text || text.trim() === "") return text;
   
   const apiKey = getApiKey();
+  console.log(`[GeminiService] Translating to ${targetLang}. API Key length: ${apiKey?.length || 0}`);
+  
   if (!apiKey || apiKey === "") {
     console.error("Gemini API Key is missing.");
     throw new Error("API_KEY_MISSING");
   }
 
-  const genAI = new GoogleGenerativeAI(apiKey);
-
-  const cacheKey = `${targetLang}:${text.substring(0, 100)}:${text.length}`;
-  if (translationCache[cacheKey]) {
-    return translationCache[cacheKey];
-  }
-  
   try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const cacheKey = `${targetLang}:${text.substring(0, 100)}:${text.length}`;
+    if (translationCache[cacheKey]) {
+      return translationCache[cacheKey];
+    }
+    
+    console.log(`[GeminiService] Calling model gemini-1.5-flash...`);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
-    const result = await model.generateContent(`You are a professional translator. Translate the following text into ${targetLang === 'tr' ? 'Turkish' : 'Kurdish (Kurmanji dialect)'}. 
+    const prompt = `You are a professional translator. Translate the following text into ${targetLang === 'tr' ? 'Turkish' : 'Kurdish (Kurmanji dialect)'}. 
       - Maintain the original tone, style, and formatting.
-      - If there are placeholders like [IMAGE:...] keep them exactly as they are.
+      - If there are placeholders like [IMAGE:...] or [VIDEO:...] keep them exactly as they are.
       - Return ONLY the translated text. Do not include any explanations or intro/outro.
       
       Text to translate:
-      ${text}`);
+      ${text}`;
 
+    const result = await model.generateContent(prompt);
     const response = await result.response;
     const translatedText = response.text();
 
     if (!translatedText || translatedText.trim() === "") {
+      console.warn("[GeminiService] Model returned empty response");
       throw new Error("EMPTY_RESPONSE");
     }
     
+    console.log(`[GeminiService] Success! Length: ${translatedText.length}`);
     translationCache[cacheKey] = translatedText.trim();
     saveCache();
     return translatedText.trim();
   } catch (error: any) {
     console.error("Translation error details:", error);
+    // Extract meaningful message from Gemini error
+    if (error?.message) {
+      if (error.message.includes('API_KEY_INVALID')) throw new Error('API_KEY_INVALID');
+      if (error.message.includes('permission denied')) throw new Error('PERMISSION_DENIED');
+      if (error.status === 403) throw new Error('API_KEY_RESTRICTED');
+    }
     throw error;
   }
 };

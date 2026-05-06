@@ -42,6 +42,8 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
   
   const [showKeySettings, setShowKeySettings] = useState(false);
   const [manualApiKey, setManualApiKey] = useState(localStorage.getItem('GEMINI_API_KEY_OVERRIDE') || '');
+  const [isTestLoading, setIsTestLoading] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   
   const [importMode, setImportMode] = useState(false);
   const [importXml, setImportXml] = useState('');
@@ -208,22 +210,40 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
   };
 
   const translateAll = async () => {
-    // Convention: If I'm on TR tab, translate TR -> KU. If I'm on KU tab, translate KU -> TR.
-    const sourceLang = activeLangTab;
-    const targetLang: Language = sourceLang === 'tr' ? 'ku' : 'tr';
+    const trTitle = (formData.title as any)?.tr || '';
+    const kuTitle = (formData.title as any)?.ku || '';
     
-    // Check if source has at least a title
+    let sourceLang: Language;
+    let targetLang: Language;
+
+    // Smart detection:
+    if (trTitle.trim().length >= 2 && kuTitle.trim().length < 2) {
+      // TR has content, KU is empty -> TR to KU
+      sourceLang = 'tr';
+      targetLang = 'ku';
+    } else if (kuTitle.trim().length >= 2 && trTitle.trim().length < 2) {
+      // KU has content, TR is empty -> KU to TR
+      sourceLang = 'ku';
+      targetLang = 'tr';
+    } else {
+      // Both or none have content, fall back to current tab logic
+      sourceLang = activeLangTab;
+      targetLang = sourceLang === 'tr' ? 'ku' : 'tr';
+    }
+    
     const sourceTitle = (formData.title as any)?.[sourceLang] || '';
     if (sourceTitle.trim().length < 2) {
-      const sourceName = sourceLang === 'tr' ? 'Türkçe' : 'Kürtçe';
-      alert(lang === 'tr' ? `Önce ${sourceName} başlığı yazmalısınız.` : `Berê divê hûn sernavê ${sourceLang === 'tr' ? 'Tirkî' : 'Kurdî'} binivîsin.`);
+      alert(lang === 'tr' 
+        ? `Çeviri yapabilmek için önce bir dilde (Türkçe veya Kürtçe) başlığı yazmalısınız.` 
+        : `Ji bo wergerê, divê hûn pêşî bi zimanekî sernavê binivîsin.`);
       return;
     }
 
     setIsTranslatingAll(true);
+    console.log(`[AI Translate All] Source: ${sourceLang}, Target: ${targetLang}`);
+    
     try {
       const fields: ('title' | 'excerpt' | 'content')[] = ['title', 'excerpt', 'content'];
-      // We'll collect translations first to avoid partial updates causing issues
       const translations: Record<string, string> = {};
       
       for (const field of fields) {
@@ -234,10 +254,8 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
             if (translated) {
               translations[field] = translated;
             }
-          } catch (err) {
+          } catch (err: any) {
             console.error(`Error translating ${field}:`, err);
-            // We continue for other fields if one fails? Or stop? 
-            // Better stop and notify if it's an API issue.
             throw err;
           }
         }
@@ -255,9 +273,16 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
 
       setActiveLangTab(targetLang);
       alert(lang === 'tr' ? 'Tüm içerik başarıyla çevrildi.' : 'Hemû naverok bi serkeftî hat wergerandin.');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Translate all error:', error);
-      alert(lang === 'tr' ? 'Otomatik çeviri başarısız oldu. Lütfen API anahtarınızı (Ayarlar -> Anahtar simgesi) kontrol edin.' : 'Çewtiya wergera bixweber.');
+      const msg = error?.message || '';
+      const isApiKeyError = msg.includes('API_KEY') || msg.includes('403') || msg.includes('401');
+      
+      alert(lang === 'tr' 
+        ? (isApiKeyError 
+            ? 'AI Çeviri Başarısız: API Anahtarınız geçersiz veya kısıtlı. Ayarlar (Anahtar simgesi) kısmından kontrol edin.' 
+            : `Çeviri hatası: ${msg}`)
+        : 'Çewtiya wergera bixweber.');
     } finally {
       setIsTranslatingAll(false);
     }
@@ -395,9 +420,42 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
   };
 
   const saveApiKey = () => {
-    localStorage.setItem('GEMINI_API_KEY_OVERRIDE', manualApiKey);
-    setShowKeySettings(false);
-    alert('API Anahtarı kaydedildi.');
+    const trimmedKey = manualApiKey.trim();
+    if (trimmedKey && !trimmedKey.startsWith('AIza')) {
+      alert(lang === 'tr' ? 'Geçersiz API Anahtarı formatı. Genellikle "AIza" ile başlar.' : 'Formata mifteya API ya nederst.');
+      return;
+    }
+    
+    localStorage.setItem('GEMINI_API_KEY_OVERRIDE', trimmedKey);
+    setSaveSuccess(true);
+    setTimeout(() => {
+      setSaveSuccess(false);
+      setShowKeySettings(false);
+    }, 1500);
+  };
+
+  const testApiKey = async () => {
+    if (!manualApiKey.trim()) {
+      alert(lang === 'tr' ? 'Lütfen önce bir anahtar girin.' : 'Ji kerema xwe berê mifteyek binivîsin.');
+      return;
+    }
+    
+    // Temporarily save to test
+    localStorage.setItem('GEMINI_API_KEY_OVERRIDE', manualApiKey.trim());
+    
+    setIsTestLoading(true);
+    try {
+      // Small test translation
+      await translateContent("Hello", "tr");
+      alert(lang === 'tr' ? 'Bağlantı Başarılı! API Anahtarınız çalışıyor.' : 'Girêdan Serkeftî ye!');
+    } catch (error: any) {
+      console.error("Test failed:", error);
+      alert(lang === 'tr' 
+        ? `Bağlantı Başarısız: ${error.message || 'Bilinmeyen hata'}. Anahtarın doğruluğunu ve internetinizi kontrol edin.` 
+        : `Taqîkirin bi ser neket.`);
+    } finally {
+      setIsTestLoading(false);
+    }
   };
 
   return (
@@ -475,16 +533,30 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
                     <button onClick={() => setShowKeySettings(false)}><X size={20} /></button>
                   </div>
                   <p className="text-sm text-gray-500 mb-4">Otomatik çeviri özelliği için Gemini API anahtarınızı buraya girin.</p>
-                  <div className="flex gap-3">
-                    <input 
-                      type="password"
-                      value={manualApiKey}
-                      onChange={e => setManualApiKey(e.target.value)}
-                      placeholder="AIzaSy..."
-                      className="flex-1 px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-brand-accent/20 focus:border-brand-accent font-mono"
-                    />
-                    <button onClick={saveApiKey} className="px-6 py-3 bg-brand-accent text-white rounded-xl font-bold hover:brightness-110 shadow-lg shadow-brand-accent/20">
-                      Kaydet
+                  <div className="flex flex-col gap-4">
+                    <div className="flex gap-3">
+                      <input 
+                        type="password"
+                        value={manualApiKey}
+                        onChange={e => setManualApiKey(e.target.value)}
+                        placeholder="AIzaSy..."
+                        className="flex-1 px-4 py-3 rounded-xl border border-gray-200 outline-none focus:ring-2 focus:ring-brand-accent/20 focus:border-brand-accent font-mono"
+                      />
+                      <button 
+                        onClick={saveApiKey} 
+                        className={`px-6 py-3 ${saveSuccess ? 'bg-green-600' : 'bg-brand-primary'} text-white rounded-xl font-bold transition-all flex items-center gap-2`}
+                      >
+                        {saveSuccess ? <Check size={18} /> : null}
+                        {saveSuccess ? 'Kaydedildi' : 'Kaydet'}
+                      </button>
+                    </div>
+                    <button 
+                      onClick={testApiKey}
+                      disabled={isTestLoading}
+                      className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                    >
+                      {isTestLoading ? <Loader2 className="animate-spin" size={18} /> : <Globe size={18} />}
+                      {lang === 'tr' ? 'Bağlantıyı Test Et' : 'Girêdanê Taqî Bike'}
                     </button>
                   </div>
                 </motion.div>
