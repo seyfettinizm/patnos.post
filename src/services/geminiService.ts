@@ -82,7 +82,13 @@ export const translateContent = async (text: string, targetLang: 'tr' | 'ku') =>
     
     console.log(`[GeminiService] Calling model...`);
     // List of models to try in order of preference
-    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash-001", "gemini-pro"];
+    const modelsToTry = [
+      "gemini-1.5-flash", 
+      "gemini-1.5-flash-latest", 
+      "gemini-1.5-flash-002",
+      "gemini-1.5-flash-8b",
+      "gemini-pro"
+    ];
     let lastError: any = null;
     let translatedText = "";
 
@@ -114,15 +120,14 @@ export const translateContent = async (text: string, targetLang: 'tr' | 'ku') =>
         
         // If it's a 403 (Forbidden/Invalid Key), no point in trying other models
         if (errorMsg.includes('403') || errorMsg.includes('API_KEY_INVALID') || errorMsg.includes('API key not valid')) {
-          throw new Error('API ANAHTARI GEÇERSİZ: Girdiğiniz anahtarı kontrol edin. "aistudio.google.com" üzerinden aldığınızdan emin olun.');
+          throw new Error('API ANAHTARI GEÇERSİZ: Lütfen "aistudio.google.com" üzerinden yeni bir anahtar alın.');
         }
-        // If it's a 404, we continue to the next model
       }
     }
 
     if (!translatedText || translatedText.trim() === "") {
       if (lastError?.message?.includes('404') || lastError?.message?.includes('not found')) {
-        throw new Error('MODEL BULUNAMADI (404): Anahtarınız geçerli ancak Gemini 1.5 Flash modeline erişim izniniz yok. Lütfen "aistudio.google.com" adresinden "Create API key in new project" diyerek yeni bir anahtar alın.');
+        throw new Error('MODEL BULUNAMADI (404): Anahtarınız geçerli ancak bu projedeki modellere erişim izniniz yok. Lütfen aistudio.google.com üzerinden "Create API key in new project" diyerek YENİ bir anahtar alıp deneyin.');
       }
       throw lastError || new Error("EMPTY_RESPONSE");
     }
