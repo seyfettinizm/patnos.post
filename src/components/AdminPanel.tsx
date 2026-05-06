@@ -131,71 +131,133 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
   };
 
   const autoTranslateField = async (field: 'title' | 'excerpt' | 'content') => {
-    // Current tab is where we want the result to go
-    const targetLang = activeLangTab;
-    // The other tab is where we expect the content to be
-    const sourceLang: Language = targetLang === 'tr' ? 'ku' : 'tr';
-    const sourceText = (formData[field] as any)?.[sourceLang];
+    // We determine source and target more intelligently
+    // If we are on TR tab and TR has content but KU is empty, we translate TR -> KU
+    // If we are on KU tab and TR has content, we pull from TR -> KU
+    
+    const trText = (formData[field] as any)?.tr || '';
+    const kuText = (formData[field] as any)?.ku || '';
+    
+    let sourceLang: Language;
+    let targetLang: Language;
+    let sourceText: string;
 
-    console.log(`[Translate] Field: ${field}, SourceLang: ${sourceLang}, TargetLang: ${targetLang}, Text:`, sourceText);
-
-    if (!sourceText || sourceText.trim().length < 2) {
-      const sourceName = sourceLang === 'tr' ? 'Türkçe' : 'Kürtçe';
-      alert(lang === 'tr' ? `Çeviri yapabilmek için önce ${sourceName} alanını doldurmalısınız.` : `Ji bo wergerê, divê hûn pêşî qada ${sourceLang === 'tr' ? 'Tirkî' : 'Kurdî'} dagirin.`);
-      return;
+    if (activeLangTab === 'tr') {
+      // On TR tab: typically we want to translate what we see (TR) into the hidden one (KU)
+      // unless TR is empty and KU has something.
+      if (trText.trim().length >= 2) {
+        sourceLang = 'tr';
+        targetLang = 'ku';
+        sourceText = trText;
+      } else if (kuText.trim().length >= 2) {
+        sourceLang = 'ku';
+        targetLang = 'tr';
+        sourceText = kuText;
+      } else {
+        alert(lang === 'tr' ? 'Çeviri yapabilmek için önce bu alanı doldurmalısınız.' : 'Ji bo wergerê, divê hûn pêşî vê qadê dagirin.');
+        return;
+      }
+    } else {
+      // On KU tab: typically we want to fill the current field (KU) from TR
+      if (trText.trim().length >= 2) {
+        sourceLang = 'tr';
+        targetLang = 'ku';
+        sourceText = trText;
+      } else if (kuText.trim().length >= 2) {
+        sourceLang = 'ku';
+        targetLang = 'tr';
+        sourceText = kuText;
+      } else {
+        alert(lang === 'tr' ? 'Çeviri yapabilmek için önce bir dili doldurmalısınız.' : 'Ji bo wergerê, divê hûn pêşî zimanek dagirin.');
+        return;
+      }
     }
+
+    console.log(`[AI Translate] ${sourceText.substring(0, 20)}... from ${sourceLang} to ${targetLang}`);
 
     setIsAutoTranslating(field);
     try {
       const translated = await translateContent(sourceText, targetLang);
-      if (!translated) throw new Error('Empty translation');
+      if (!translated) throw new Error('Empty translation response');
       
-      setFormData(prev => ({
-        ...prev,
-        [field]: { ...(prev[field] as any || {}), [targetLang]: translated } as any
-      }));
+      setFormData(prev => {
+        const currentData = { ...prev };
+        const fieldData = { ...(currentData[field] as any || { tr: '', ku: '' }) };
+        fieldData[targetLang] = translated;
+        return {
+          ...currentData,
+          [field]: fieldData as any
+        };
+      });
+      
+      // If we were on one tab and translated into it, no problem.
+      // If we translated INTO the other tab, maybe give a small hint?
+      if (targetLang !== activeLangTab) {
+        // Optional: switch or notify. For now just update state.
+      }
+
     } catch (error: any) {
       console.error('Translation error:', error);
-      alert(lang === 'tr' ? 'AI Çeviri Hatası: Lütfen Ayarlar kısmından API anahtarınızı kontrol edin veya internetinizi kontrol edin.' : 'Çewtiya Wergera AI: Ji kerema xwe mifteya API yan înterneta xwe kontrol bikin.');
+      const isApiKeyError = error?.message?.includes('API_KEY') || error?.status === 403;
+      alert(lang === 'tr' 
+        ? (isApiKeyError ? 'AI Çeviri Hatası: API Anahtarınız geçersiz veya eksik. Lütfen AYARLAR -> API ANAHTARI kısmını kontrol edin.' : 'Çeviri sırasında bir hata oluştu. Lütfen internetinizi kontrol edin.')
+        : 'Di wergerê de çewtiyek derket.');
     } finally {
       setIsAutoTranslating(null);
     }
   };
 
   const translateAll = async () => {
-    // If we are on TR tab, we translate TR -> KU. If on KU tab, KU -> TR.
+    // Convention: If I'm on TR tab, translate TR -> KU. If I'm on KU tab, translate KU -> TR.
     const sourceLang = activeLangTab;
     const targetLang: Language = sourceLang === 'tr' ? 'ku' : 'tr';
     
-    const sourceTitle = formData.title?.[sourceLang];
-    if (!sourceTitle || sourceTitle.trim().length < 2) {
+    // Check if source has at least a title
+    const sourceTitle = (formData.title as any)?.[sourceLang] || '';
+    if (sourceTitle.trim().length < 2) {
       const sourceName = sourceLang === 'tr' ? 'Türkçe' : 'Kürtçe';
-      alert(lang === 'tr' ? `Önce ${sourceName} başlığı ve içeriği yazmalısınız.` : `Pêşî divê hûn sernav û naveroka ${sourceLang === 'tr' ? 'Tirkî' : 'Kurdî'} binivîsin.`);
+      alert(lang === 'tr' ? `Önce ${sourceName} başlığı yazmalısınız.` : `Berê divê hûn sernavê ${sourceLang === 'tr' ? 'Tirkî' : 'Kurdî'} binivîsin.`);
       return;
     }
 
     setIsTranslatingAll(true);
     try {
       const fields: ('title' | 'excerpt' | 'content')[] = ['title', 'excerpt', 'content'];
-      const newFormData = { ...formData };
+      // We'll collect translations first to avoid partial updates causing issues
+      const translations: Record<string, string> = {};
       
       for (const field of fields) {
         const text = (formData[field] as any)?.[sourceLang];
         if (text && text.trim().length > 1) {
-          const translated = await translateContent(text, targetLang);
-          if (translated) {
-            if (!newFormData[field]) newFormData[field] = { tr: '', ku: '' } as any;
-            (newFormData[field] as any)[targetLang] = translated;
+          try {
+            const translated = await translateContent(text, targetLang);
+            if (translated) {
+              translations[field] = translated;
+            }
+          } catch (err) {
+            console.error(`Error translating ${field}:`, err);
+            // We continue for other fields if one fails? Or stop? 
+            // Better stop and notify if it's an API issue.
+            throw err;
           }
         }
       }
       
-      setFormData(newFormData);
+      setFormData(prev => {
+        const updated = { ...prev };
+        Object.entries(translations).forEach(([field, val]) => {
+          const fieldData = { ...(updated[field as keyof NewsItem] as any || { tr: '', ku: '' }) };
+          fieldData[targetLang] = val;
+          (updated as any)[field] = fieldData;
+        });
+        return updated;
+      });
+
       setActiveLangTab(targetLang);
       alert(lang === 'tr' ? 'Tüm içerik başarıyla çevrildi.' : 'Hemû naverok bi serkeftî hat wergerandin.');
     } catch (error) {
       console.error('Translate all error:', error);
-      alert(lang === 'tr' ? 'Otomatik çeviri sırasında bir hata oluştu.' : 'Di dema wergera bixweber de çewtiyek derket.');
+      alert(lang === 'tr' ? 'Otomatik çeviri başarısız oldu. Lütfen API anahtarınızı (Ayarlar -> Anahtar simgesi) kontrol edin.' : 'Çewtiya wergera bixweber.');
     } finally {
       setIsTranslatingAll(false);
     }
