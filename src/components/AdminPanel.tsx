@@ -131,54 +131,69 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
   };
 
   const autoTranslateField = async (field: 'title' | 'excerpt' | 'content') => {
-    const sourceLang: Language = activeLangTab === 'tr' ? 'ku' : 'tr';
-    const targetLang: Language = activeLangTab;
+    // Current tab is where we want the result to go
+    const targetLang = activeLangTab;
+    // The other tab is where we expect the content to be
+    const sourceLang: Language = targetLang === 'tr' ? 'ku' : 'tr';
     const sourceText = (formData[field] as any)?.[sourceLang];
 
-    if (!sourceText) {
-      alert(lang === 'tr' ? `Önce ${sourceLang === 'tr' ? 'Kürtçe' : 'Türkçe'} içeriği doldurmalısınız.` : `Berê divê hûn naveroka ${sourceLang === 'tr' ? 'Kurdî' : 'Tirkî'} dagirin.`);
+    if (!sourceText || sourceText.trim().length < 2) {
+      const sourceName = sourceLang === 'tr' ? 'Türkçe' : 'Kürtçe';
+      alert(lang === 'tr' ? `Çeviri yapabilmek için önce ${sourceName} alanını doldurmalısınız.` : `Ji bo wergerê, divê hûn pêşî qada ${sourceLang === 'tr' ? 'Tirkî' : 'Kurdî'} dagirin.`);
       return;
     }
 
     setIsAutoTranslating(field);
     try {
       const translated = await translateContent(sourceText, targetLang);
+      if (!translated) throw new Error('Empty translation');
+      
       setFormData(prev => ({
         ...prev,
         [field]: { ...(prev[field] || {}), [targetLang]: translated } as any
       }));
     } catch (error: any) {
-      alert(lang === 'tr' ? 'Çeviri hatası. Lütfen API anahtarını kontrol edin.' : 'Çewtiya wergerê. Ji kerema xwe mifteya API kontrol bikin.');
+      console.error('Translation error:', error);
+      alert(lang === 'tr' ? 'AI Çeviri Hatası: Lütfen Ayarlar kısmından API anahtarınızı kontrol edin veya internetinizi kontrol edin.' : 'Çewtiya Wergera AI: Ji kerema xwe mifteya API yan înterneta xwe kontrol bikin.');
     } finally {
       setIsAutoTranslating(null);
     }
   };
 
   const translateAll = async () => {
-    const sourceLang: Language = activeLangTab;
-    const targetLang: Language = activeLangTab === 'tr' ? 'ku' : 'tr';
+    // If we are on TR tab, we translate TR -> KU. If on KU tab, KU -> TR.
+    const sourceLang = activeLangTab;
+    const targetLang: Language = sourceLang === 'tr' ? 'ku' : 'tr';
     
-    if (!formData.title?.[sourceLang]) {
-      alert(lang === 'tr' ? "Lütfen en azından başlığı doldurun." : "Ji kerema xwe bi kêmanî sernavê dagirin.");
+    const sourceTitle = formData.title?.[sourceLang];
+    if (!sourceTitle || sourceTitle.trim().length < 2) {
+      const sourceName = sourceLang === 'tr' ? 'Türkçe' : 'Kürtçe';
+      alert(lang === 'tr' ? `Önce ${sourceName} başlığı ve içeriği yazmalısınız.` : `Pêşî divê hûn sernav û naveroka ${sourceLang === 'tr' ? 'Tirkî' : 'Kurdî'} binivîsin.`);
       return;
     }
 
     setIsTranslatingAll(true);
     try {
       const fields: ('title' | 'excerpt' | 'content')[] = ['title', 'excerpt', 'content'];
+      const newFormData = { ...formData };
+      
       for (const field of fields) {
         const text = (formData[field] as any)?.[sourceLang];
-        if (text) {
+        if (text && text.trim().length > 1) {
           const translated = await translateContent(text, targetLang);
-          setFormData(prev => ({
-            ...prev,
-            [field]: { ...(prev[field] || {}), [targetLang]: translated } as any
-          }));
+          if (translated) {
+            if (!newFormData[field]) newFormData[field] = { tr: '', ku: '' } as any;
+            (newFormData[field] as any)[targetLang] = translated;
+          }
         }
       }
+      
+      setFormData(newFormData);
       setActiveLangTab(targetLang);
+      alert(lang === 'tr' ? 'Tüm içerik başarıyla çevrildi.' : 'Hemû naverok bi serkeftî hat wergerandin.');
     } catch (error) {
-      alert(lang === 'tr' ? 'Otomatik çeviri hatası' : 'Çewtiya wergera bixweber');
+      console.error('Translate all error:', error);
+      alert(lang === 'tr' ? 'Otomatik çeviri sırasında bir hata oluştu.' : 'Di dema wergera bixweber de çewtiyek derket.');
     } finally {
       setIsTranslatingAll(false);
     }
