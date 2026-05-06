@@ -137,6 +137,8 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
     const sourceLang: Language = targetLang === 'tr' ? 'ku' : 'tr';
     const sourceText = (formData[field] as any)?.[sourceLang];
 
+    console.log(`[Translate] Field: ${field}, SourceLang: ${sourceLang}, TargetLang: ${targetLang}, Text:`, sourceText);
+
     if (!sourceText || sourceText.trim().length < 2) {
       const sourceName = sourceLang === 'tr' ? 'Türkçe' : 'Kürtçe';
       alert(lang === 'tr' ? `Çeviri yapabilmek için önce ${sourceName} alanını doldurmalısınız.` : `Ji bo wergerê, divê hûn pêşî qada ${sourceLang === 'tr' ? 'Tirkî' : 'Kurdî'} dagirin.`);
@@ -150,7 +152,7 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
       
       setFormData(prev => ({
         ...prev,
-        [field]: { ...(prev[field] || {}), [targetLang]: translated } as any
+        [field]: { ...(prev[field] as any || {}), [targetLang]: translated } as any
       }));
     } catch (error: any) {
       console.error('Translation error:', error);
