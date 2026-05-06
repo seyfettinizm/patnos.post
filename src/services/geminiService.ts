@@ -82,16 +82,14 @@ export const translateContent = async (text: string, targetLang: 'tr' | 'ku') =>
     
     console.log(`[GeminiService] Calling model...`);
     // List of models to try in order of preference
-    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro", "gemini-1.0-pro"];
+    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-1.5-flash-001", "gemini-pro"];
     let lastError: any = null;
     let translatedText = "";
 
     for (const modelName of modelsToTry) {
       try {
-        // Some keys require explicit 'models/' prefix depending on the library version
-        const fullModelName = modelName.startsWith('models/') ? modelName : `models/${modelName}`;
-        console.log(`[GeminiService] Attempting with model: ${fullModelName}`);
-        const model = genAI.getGenerativeModel({ model: modelName }); // The SDK usually adds models/
+        console.log(`[GeminiService] Attempting with model: ${modelName}`);
+        const model = genAI.getGenerativeModel({ model: modelName });
         
         const prompt = `You are a professional translator. Translate the following text into ${targetLang === 'tr' ? 'Turkish' : 'Kurdish (Kurmanji dialect)'}. 
           - Maintain the original tone, style, and formatting.
@@ -116,15 +114,15 @@ export const translateContent = async (text: string, targetLang: 'tr' | 'ku') =>
         
         // If it's a 403 (Forbidden/Invalid Key), no point in trying other models
         if (errorMsg.includes('403') || errorMsg.includes('API_KEY_INVALID') || errorMsg.includes('API key not valid')) {
-          throw new Error('API ANAHTARI GEÇERSİZ: Girdiğiniz anahtarı ve projenizde "Generative Language API"nin açık olduğunu kontrol edin.');
+          throw new Error('API ANAHTARI GEÇERSİZ: Girdiğiniz anahtarı kontrol edin. "aistudio.google.com" üzerinden aldığınızdan emin olun.');
         }
-        // If it's a 404, we continue to the next model in the list
+        // If it's a 404, we continue to the next model
       }
     }
 
     if (!translatedText || translatedText.trim() === "") {
-      if (lastError?.message?.includes('404')) {
-        throw new Error('MODEL BULUNAMADI (404): API anahtarınız bu modele (Gemini 1.5 Flash) erişemiyor. Lütfen AI Studio üzerinden yeni bir anahtar alıp "Tüm Dillere Çevir" demeden önce test edin.');
+      if (lastError?.message?.includes('404') || lastError?.message?.includes('not found')) {
+        throw new Error('MODEL BULUNAMADI (404): Anahtarınız geçerli ancak Gemini 1.5 Flash modeline erişim izniniz yok. Lütfen "aistudio.google.com" adresinden "Create API key in new project" diyerek yeni bir anahtar alın.');
       }
       throw lastError || new Error("EMPTY_RESPONSE");
     }

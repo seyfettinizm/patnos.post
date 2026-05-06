@@ -446,12 +446,15 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
     setIsTestLoading(true);
     try {
       // Small test translation
-      await translateContent("Hello", "tr");
+      await translateContent("Merhaba", "ku");
       alert(lang === 'tr' ? 'Bağlantı Başarılı! API Anahtarınız çalışıyor.' : 'Girêdan Serkeftî ye!');
     } catch (error: any) {
       console.error("Test failed:", error);
+      const is404 = error.message?.includes('404') || error.message?.includes('not found');
       alert(lang === 'tr' 
-        ? `Bağlantı Başarısız: ${error.message || 'Bilinmeyen hata'}. Anahtarın doğruluğunu ve internetinizi kontrol edin.` 
+        ? (is404 
+            ? 'Hata (404): Anahtar geçerli ama bu model yetkiniz yok. Lütfen "aistudio.google.com" üzerinden yeni bir anahtar alın.' 
+            : `Bağlantı Başarısız: ${error.message}. Anahtarın doğruluğunu kontrol edin.`)
         : `Taqîkirin bi ser neket.`);
     } finally {
       setIsTestLoading(false);
@@ -532,7 +535,12 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
                     </h3>
                     <button onClick={() => setShowKeySettings(false)}><X size={20} /></button>
                   </div>
-                  <p className="text-sm text-gray-500 mb-4">Otomatik çeviri özelliği için Gemini API anahtarınızı buraya girin.</p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Otomatik çeviri özelliği için Gemini API anahtarınızı buraya girin. 
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-brand-accent hover:underline ml-1">
+                      Anahtar almak için tıklayın (Ücretsiz)
+                    </a>
+                  </p>
                   <div className="flex flex-col gap-4">
                     <div className="flex gap-3">
                       <input 
