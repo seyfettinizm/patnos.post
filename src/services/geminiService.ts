@@ -80,9 +80,9 @@ export const translateContent = async (text: string, targetLang: 'tr' | 'ku') =>
       return translationCache[cacheKey];
     }
     
-    console.log(`[GeminiService] Calling model gemini-1.5-flash...`);
-    // Try gemini-1.5-flash, which is standard
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    console.log(`[GeminiService] Calling model...`);
+    // Try a more specific model name or common alias
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
     
     const prompt = `You are a professional translator. Translate the following text into ${targetLang === 'tr' ? 'Turkish' : 'Kurdish (Kurmanji dialect)'}. 
       - Maintain the original tone, style, and formatting.
