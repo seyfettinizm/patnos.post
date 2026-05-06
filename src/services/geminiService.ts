@@ -81,27 +81,47 @@ export const translateContent = async (text: string, targetLang: 'tr' | 'ku') =>
     }
     
     console.log(`[GeminiService] Calling model...`);
-    // Try a more specific model name or common alias
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-    
-    const prompt = `You are a professional translator. Translate the following text into ${targetLang === 'tr' ? 'Turkish' : 'Kurdish (Kurmanji dialect)'}. 
-      - Maintain the original tone, style, and formatting.
-      - If there are placeholders like [IMAGE:...] or [VIDEO:...] keep them exactly as they are.
-      - Return ONLY the translated text. Do not include any explanations or intro/outro.
-      
-      Text to translate:
-      ${text}`;
+    // List of models to try in order of preference
+    const modelsToTry = ["gemini-1.5-flash", "gemini-1.5-flash-latest", "gemini-pro", "gemini-1.0-pro"];
+    let lastError: any = null;
+    let translatedText = "";
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const translatedText = response.text();
+    for (const modelName of modelsToTry) {
+      try {
+        console.log(`[GeminiService] Attempting with model: ${modelName}`);
+        const model = genAI.getGenerativeModel({ model: modelName });
+        
+        const prompt = `You are a professional translator. Translate the following text into ${targetLang === 'tr' ? 'Turkish' : 'Kurdish (Kurmanji dialect)'}. 
+          - Maintain the original tone, style, and formatting.
+          - If there are placeholders like [IMAGE:...] or [VIDEO:...] keep them exactly as they are.
+          - Return ONLY the translated text. Do not include any explanations or intro/outro.
+          
+          Text to translate:
+          ${text}`;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        translatedText = response.text();
+        
+        if (translatedText && translatedText.trim().length > 0) {
+          console.log(`[GeminiService] Success with model: ${modelName}`);
+          break; // Success! Exit loop.
+        }
+      } catch (err: any) {
+        console.warn(`[GeminiService] Model ${modelName} failed:`, err.message);
+        lastError = err;
+        // If it's a 404, we continue to next model. If it's 403 (Invalid Key), we stop.
+        if (err.message?.includes('403') || err.message?.includes('API_KEY_INVALID')) {
+          throw err; 
+        }
+      }
+    }
 
     if (!translatedText || translatedText.trim() === "") {
-      console.warn("[GeminiService] Model returned empty response");
-      throw new Error("EMPTY_RESPONSE");
+      throw lastError || new Error("EMPTY_RESPONSE");
     }
     
-    console.log(`[GeminiService] Success! Length: ${translatedText.length}`);
+    console.log(`[GeminiService] Final Success! Length: ${translatedText.length}`);
     translationCache[cacheKey] = translatedText.trim();
     saveCache();
     return translatedText.trim();
