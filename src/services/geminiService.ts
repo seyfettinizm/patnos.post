@@ -83,11 +83,11 @@ export const translateContent = async (text: string, targetLang: 'tr' | 'ku') =>
     console.log(`[GeminiService] Calling model...`);
     // List of models to try in order of preference
     const modelsToTry = [
+      "gemini-3-flash-preview",
+      "gemini-2.0-flash-exp", 
       "gemini-1.5-flash", 
       "gemini-1.5-flash-latest",
-      "gemini-1.5-flash-001",
-      "gemini-1.5-flash-002",
-      "gemini-1.5-flash-8b",
+      "gemini-1.5-pro",
       "gemini-pro"
     ];
     let lastError: any = null;
@@ -98,7 +98,9 @@ export const translateContent = async (text: string, targetLang: 'tr' | 'ku') =>
         console.log(`[GeminiService] Attempting with model: ${modelName}`);
         const model = genAI.getGenerativeModel({ model: modelName });
         
-        const prompt = `You are a professional translator. Translate the following text into ${targetLang === 'tr' ? 'Turkish' : 'Kurdish (Kurmanji dialect)'}. 
+        const prompt = `You are a professional journalist and translator. 
+          Translate the following text into ${targetLang === 'tr' ? 'Turkish' : 'Kurdish (Kurmanji dialect)'}. 
+          - Use a professional journalism and news report style.
           - Maintain the original tone, style, and formatting.
           - If there are placeholders like [IMAGE:...] or [VIDEO:...] keep them exactly as they are.
           - Return ONLY the translated text. Do not include any explanations or intro/outro.
@@ -111,7 +113,7 @@ export const translateContent = async (text: string, targetLang: 'tr' | 'ku') =>
         translatedText = response.text();
         
         if (translatedText && translatedText.trim().length > 0) {
-          console.log(`[GeminiService] Success with model: ${modelName}`);
+          console.log(`[GeminiService] SUCCESS with model: ${modelName}`);
           break; 
         }
       } catch (err: any) {
@@ -119,18 +121,18 @@ export const translateContent = async (text: string, targetLang: 'tr' | 'ku') =>
         console.warn(`[GeminiService] Model ${modelName} failed:`, errorMsg);
         lastError = err;
         
-        // If it's a 403 (Forbidden/Invalid Key), no point in trying other models
         if (errorMsg.includes('403') || errorMsg.includes('API_KEY_INVALID') || errorMsg.includes('API key not valid')) {
-          throw new Error('API ANAHTARI GEÇERSİZ: Lütfen "aistudio.google.com" üzerinden yeni bir anahtar alın.');
+          throw new Error(`API ANAHTARI HATASI: ${errorMsg}`);
         }
       }
     }
 
     if (!translatedText || translatedText.trim() === "") {
-      if (lastError?.message?.includes('404') || lastError?.message?.includes('not found')) {
-        throw new Error('MODEL BULUNAMADI (404): Anahtarınız geçerli ancak Gemini modellerine bu hesap üzerinden erişim sağlanamıyor. Lütfen AI Studio\'da "Create API key in NEW project" seçeneğiyle yeni bir anahtar oluşturun.');
+      const finalErrorMsg = lastError?.message || "Bilinmeyen hata";
+      if (finalErrorMsg.includes('404') || finalErrorMsg.includes('not found')) {
+        throw new Error('MODEL BULUNAMADI (404): Projenizde Flash veya Pro modelleri aktif değil ya da kısıtlı. Lütfen çalışan uygulamanızdaki model ismini paylaşın.');
       }
-      throw lastError || new Error("EMPTY_RESPONSE");
+      throw new Error(`Çeviri hatası: ${finalErrorMsg}`);
     }
     
     console.log(`[GeminiService] Final Success! Length: ${translatedText.length}`);

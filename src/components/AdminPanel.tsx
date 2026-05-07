@@ -446,16 +446,25 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
     setIsTestLoading(true);
     try {
       // Small test translation
+      console.log("[AdminPanel] Testing translation with provided key...");
       await translateContent("Merhaba", "ku");
       alert(lang === 'tr' ? 'Bağlantı Başarılı! API Anahtarınız çalışıyor.' : 'Girêdan Serkeftî ye!');
     } catch (error: any) {
-      console.error("Test failed:", error);
+      console.error("Test failed 상세:", error);
       const is404 = error.message?.includes('404') || error.message?.includes('not found');
-      alert(lang === 'tr' 
-        ? (is404 
-            ? 'Hata (404): Anahtar geçerli ama bu model yetkiniz yok. Lütfen "aistudio.google.com" üzerinden yeni bir anahtar alın.' 
-            : `Bağlantı Başarısız: ${error.message}. Anahtarın doğruluğunu kontrol edin.`)
-        : `Taqîkirin bi ser neket.`);
+      const is403 = error.message?.includes('403') || error.message?.includes('API_KEY_INVALID');
+      
+      let errorMsg = error.message || 'Bilinmeyen hata';
+      
+      if (is404) {
+        errorMsg = lang === 'tr' 
+          ? 'Hata (404): Anahtar geçerli ama bu model yetkiniz yok. Lütfen çalışan diğer uygulamanızdaki dosya içeriğini benimle paylaşın, oradaki modeli buraya ekleyelim.' 
+          : 'Çewtiya 404.';
+      } else if (is403) {
+        errorMsg = lang === 'tr' ? 'Hata (403): API anahtarı geçersiz veya yetkisiz.' : 'Çewtiya 403.';
+      }
+      
+      alert(errorMsg);
     } finally {
       setIsTestLoading(false);
     }
