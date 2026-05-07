@@ -19,8 +19,6 @@ export interface NewsItem {
   date: string;
   imageUrl: string;
   readTime: string;
-  status?: 'published' | 'draft';
-  isBreaking?: boolean;
   updatedAt?: string;
 }
 

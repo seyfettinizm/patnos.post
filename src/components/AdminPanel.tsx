@@ -31,8 +31,7 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
     excerpt: { tr: '', ku: '' },
     content: { tr: '', ku: '' },
     category: 'general',
-    imageUrl: '',
-    status: 'published'
+    imageUrl: ''
   });
   
   const [activeLangTab, setActiveLangTab] = useState<Language>('tr');
@@ -68,8 +67,7 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
       excerpt: { tr: '', ku: '' },
       content: { tr: '', ku: '' },
       category: 'general',
-      imageUrl: '',
-      status: 'published'
+      imageUrl: ''
     });
     setEditingId(null);
     setIsAdding(false);
@@ -81,8 +79,7 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
       ...item,
       title: item.title || { tr: '', ku: '' },
       excerpt: item.excerpt || { tr: '', ku: '' },
-      content: item.content || { tr: '', ku: '' },
-      status: item.status || 'published'
+      content: item.content || { tr: '', ku: '' }
     });
     setEditingId(item.id);
     setIsAdding(true);
@@ -104,7 +101,6 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
     try {
       const itemToSave = {
         ...formData,
-        status: formData.status || 'published',
         readTime: calculateReadTime(formData.content?.[activeLangTab] || ''),
         updatedAt: new Date().toISOString(),
         date: formData.date || new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -757,25 +753,6 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
                                 <option key={cat.id} value={cat.id}>{cat[lang]}</option>
                               ))}
                             </select>
-                          </div>
-
-                          {/* Durum */}
-                          <div>
-                            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-3 font-anton">YAYIN DURUMU</label>
-                            <div className="flex bg-gray-100 p-1 rounded-xl">
-                              <button 
-                                onClick={() => setFormData({...formData, status: 'published'})}
-                                className={`flex-1 py-3 rounded-lg text-[10px] font-bold transition-all ${formData.status !== 'draft' ? 'bg-green-600 text-white shadow-md' : 'text-gray-400'}`}
-                              >
-                                {t.published.toUpperCase()}
-                              </button>
-                              <button 
-                                onClick={() => setFormData({...formData, status: 'draft'})}
-                                className={`flex-1 py-3 rounded-lg text-[10px] font-bold transition-all ${formData.status === 'draft' ? 'bg-amber-500 text-white shadow-md' : 'text-gray-400'}`}
-                              >
-                                {t.draft.toUpperCase()}
-                              </button>
-                            </div>
                           </div>
                         </div>
 

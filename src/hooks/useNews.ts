@@ -70,21 +70,7 @@ export const useNews = () => {
         .insert([payload])
         .select();
       
-      if (error) {
-        // Eğer sütun bulunamadı hatasıysa (42703 veya schema cache hatası)
-        if (error.message?.includes('column') || error.code === '42703') {
-          console.warn("Detected missing column in DB, retrying without status/isBreaking");
-          delete payload.status;
-          delete payload.isBreaking;
-          delete payload.updatedAt;
-          
-          const retry = await supabase.from('news').insert([payload]).select();
-          if (retry.error) throw retry.error;
-          if (retry.data) fetchNews();
-          return;
-        }
-        throw error;
-      }
+      if (error) throw error;
       if (data) fetchNews();
     } catch (error) {
       console.error('Supabase insert error:', error);
@@ -103,19 +89,7 @@ export const useNews = () => {
         .update(payload)
         .eq('id', id);
 
-      if (error) {
-        if (error.message?.includes('column') || error.code === '42703') {
-          console.warn("Detected missing column in DB update, retrying without optional fields");
-          delete payload.status;
-          delete payload.isBreaking;
-          
-          const retry = await supabase.from('news').update(payload).eq('id', id);
-          if (retry.error) throw retry.error;
-          fetchNews();
-          return;
-        }
-        throw error;
-      }
+      if (error) throw error;
       fetchNews();
     } catch (error) {
       console.error('Supabase update error:', error);
