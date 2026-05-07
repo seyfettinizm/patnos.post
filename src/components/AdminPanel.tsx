@@ -116,8 +116,11 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
         await addNews(itemToSave as Omit<NewsItem, 'id'>);
       }
       resetForm();
-    } catch (error) {
-      alert(lang === 'tr' ? 'Kaydetme hatası' : 'Çewtiya tomarkirinê');
+      alert(lang === 'tr' ? 'Haber başarıyla kaydedildi!' : 'Nûçe hat tomarkirin!');
+    } catch (error: any) {
+      console.error("SAVE ERROR:", error);
+      const errMsg = error.message || (lang === 'tr' ? 'Bilinmeyen veritabanı hatası' : 'Çewtiya nenas');
+      alert((lang === 'tr' ? 'Kaydetme Hatası: ' : 'Çewtiya Tomarkirinê: ') + errMsg);
     }
   };
 
@@ -183,19 +186,17 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
       if (!translated) throw new Error('Empty translation response');
       
       setFormData(prev => {
-        const currentData = { ...prev };
-        const fieldData = { ...(currentData[field] as any || { tr: '', ku: '' }) };
+        const fieldData = { ...(prev[field] as any || { tr: '', ku: '' }) };
         fieldData[targetLang] = translated;
         return {
-          ...currentData,
-          [field]: fieldData as any
+          ...prev,
+          [field]: fieldData
         };
       });
       
-      // If we were on one tab and translated into it, no problem.
-      // If we translated INTO the other tab, maybe give a small hint?
+      // Çeviri bitince kullanıcıyı çevrilen dilin sekmesine geçir ki sonucu görsün
       if (targetLang !== activeLangTab) {
-        // Optional: switch or notify. For now just update state.
+        setActiveLangTab(targetLang);
       }
 
     } catch (error: any) {
