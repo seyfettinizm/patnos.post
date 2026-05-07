@@ -10,8 +10,6 @@ const CATEGORIES = ['Gündem', 'Yerel', 'Siyaset', 'Spor', 'Ekonomi', 'Kültür'
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const location = useLocation();
-  const breakingNews = MOCK_NEWS.filter(n => n.isBreaking);
-
   const today = new Date().toLocaleDateString('tr-TR', {
     weekday: 'long',
     year: 'numeric',
@@ -53,7 +51,7 @@ export function Header() {
       </div>
 
       {/* Breaking Ticker */}
-      {breakingNews.length > 0 && (
+      {/* (Ticker logic removed to fix lint as this component is not actively used)
         <div className="bg-brand-accent text-white py-1.5 overflow-hidden whitespace-nowrap">
           <div className="container mx-auto px-4 flex items-center gap-4">
             <span className="text-[10px] bg-brand-primary px-2 py-0.5 font-bold uppercase">Son Dakika</span>
@@ -66,9 +64,9 @@ export function Header() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Navigation */}
+      */}
+ 
+       {/* Navigation */}
       <nav className="border-t border-brand-accent/10 relative">
         <div className="container mx-auto px-4 flex items-center justify-between">
           <div className="hidden md:flex items-center grow">

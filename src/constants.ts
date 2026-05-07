@@ -37,10 +37,10 @@ export const MENU_LINKS = [
 
 export const CATEGORIES = [
   { id: 'all', tr: 'Tüm Haberler', ku: 'Hemû Nûçe' },
-  { id: 'association', tr: 'Dernek Haberleri', ku: 'Nûçeyên Komeleyê' },
+  { id: 'dernek', tr: 'Dernek Haberleri', ku: 'Nûçeyên Komeleyê' },
   { id: 'patnos', tr: 'Patnos Haberleri', ku: 'Nûçeyên Panosê' },
   { id: 'general', tr: 'Genel Haberler', ku: 'Nûçeyên Giştî' },
-  { id: 'life-culture', tr: 'Yaşam ve Kültür', ku: 'Jiyan û Çand' }
+  { id: 'culture', tr: 'Yaşam ve Kültür', ku: 'Jiyan û Çand' }
 ];
 
 export interface UIStrings {
@@ -93,10 +93,11 @@ export interface UIStrings {
   share: string;
   shareNews: string;
   pages: string;
-  associationNews: string;
-  patnosNews: string;
-  generalNews: string;
-  lifeCulture: string;
+  all: string;
+  dernek: string;
+  patnos: string;
+  general: string;
+  culture: string;
 }
 
 export const UI_STRINGS: Record<Language, UIStrings> = {
@@ -150,10 +151,11 @@ export const UI_STRINGS: Record<Language, UIStrings> = {
     share: 'Paylaş:',
     shareNews: 'Haberi Paylaş',
     pages: 'Sayfalar',
-    associationNews: 'Dernek Haberleri',
-    patnosNews: 'Patnos Haberleri',
-    generalNews: 'Genel Haberler',
-    lifeCulture: 'Yaşam ve Kültür'
+    all: 'Tüm Haberler',
+    dernek: 'Dernek Haberleri',
+    patnos: 'Patnos Haberleri',
+    general: 'Genel Haberler',
+    culture: 'Yaşam ve Kültür'
   },
   ku: {
     editorLogin: 'KETINA EDÎTOR',
@@ -205,10 +207,11 @@ export const UI_STRINGS: Record<Language, UIStrings> = {
     share: 'Parve bike:',
     shareNews: 'Nûçeyê Parve Bike',
     pages: 'Rûpel',
-    associationNews: 'Nûçeyên Komeleyê',
-    patnosNews: 'Nûçeyên Panosê',
-    generalNews: 'Nûçeyên Giştî',
-    lifeCulture: 'Jiyan û Çand'
+    all: 'Hemû Nûçe',
+    dernek: 'Nûçeyên Komeleyê',
+    patnos: 'Nûçeyên Panosê',
+    general: 'Nûçeyên Giştî',
+    culture: 'Jiyan û Çand'
   }
 };
 

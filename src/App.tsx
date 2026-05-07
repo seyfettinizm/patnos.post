@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   Globe, Search, Menu, X, User, TrendingUp, 
   ChevronRight, Facebook, Instagram, Twitter, 
-  ArrowUp, Clock
+  ArrowUp, Clock, CloudSun
 } from 'lucide-react';
 
 import { 
@@ -40,7 +40,9 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [isAdmin, setIsAdmin] = useState(localStorage.getItem('isAdmin') === 'true');
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showCategories, setShowCategories] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   const { news } = useNews();
@@ -75,17 +77,14 @@ export default function App() {
   };
 
   const filteredNews = news.filter(item => {
-    if (item.status === 'draft' && !isAdmin) return false;
     const matchesCategory = activeCategory === 'all' || item.category === activeCategory;
     const matchesSearch = !searchQuery || 
-      item.title[lang]?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.title[lang === 'tr' ? 'ku' : 'tr']?.toLowerCase().includes(searchQuery.toLowerCase());
+      (item.title?.[lang] || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.title?.[lang === 'tr' ? 'ku' : 'tr'] || '').toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
-  const breakingNews = news.filter(item => item.isBreaking && item.status !== 'draft');
   const popularNews = [...news]
-    .filter(item => item.status !== 'draft')
     .sort((a, b) => b.id.localeCompare(a.id))
     .slice(0, 5);
 
@@ -96,122 +95,241 @@ export default function App() {
         {!isSupabaseConfigured() && <SupabaseSetup onComplete={() => {}} />}
 
         {/* HEADER */}
-        <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled ? 'bg-white/90 backdrop-blur-md shadow-lg py-2' : 'bg-white py-4'}`}>
+        <header className="bg-white border-b-4 border-black pt-4">
           <div className="news-container">
-            <div className="flex flex-col items-center gap-6">
-              {/* Logo Section */}
-              <div className="w-full flex justify-center">
+            <div className="flex flex-col items-center">
+              {/* Top Bar: Weather, Date, Auth */}
+              <div className="w-full flex justify-between items-center text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-4 border-b border-gray-50 pb-3">
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-2.5 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100 shadow-sm text-brand-accent transition-all hover:bg-white hover:shadow-md">
+                    <CloudSun size={14} className="animate-pulse" />
+                    <span className="tracking-widest">PATNOS 22°C</span>
+                  </div>
+                  <span className="hidden md:inline text-gray-300">|</span>
+                  <span className="hidden sm:inline font-medium opacity-80">{new Date().toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'ku-TR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                </div>
+                
+                <div className="flex items-center gap-6">
+                  {isAdmin ? (
+                    <button onClick={() => setShowAdmin(true)} className="hover:text-black transition-colors flex items-center gap-1.5 group">
+                      <User size={12} className="group-hover:scale-110 transition-transform" /> {lang === 'tr' ? 'YÖNETİM' : 'RÊVEBERÎ'}
+                    </button>
+                  ) : (
+                    <button onClick={() => setShowLogin(true)} className="hover:text-black transition-colors flex items-center gap-1.5 group">
+                      <User size={12} className="group-hover:scale-110 transition-transform" /> {lang === 'tr' ? 'EDİTÖR' : 'EDÎTOR'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Logo Row */}
+              <div className="w-full flex flex-col items-center py-2 md:py-4 relative">
                 <img 
                   src="https://static.wixstatic.com/media/7e2174_e230755889444a418254ba8ec11e24f7~mv2.png" 
                   alt="The Patnos Post Logo" 
-                  className="max-h-[80px] md:max-h-[120px] w-auto object-contain cursor-pointer"
+                  className="max-h-[70px] md:max-h-[160px] w-auto object-contain cursor-pointer transition-all duration-700 hover:scale-[1.02] drop-shadow-sm"
                   onClick={() => navigate(`/?lang=${lang}`)}
                   referrerPolicy="no-referrer"
                 />
+
+                <div className="mt-1 md:mt-2 text-[10px] sm:text-2xl md:text-4xl font-yesteryear text-gray-800 border-t border-b border-black/5 py-1 md:py-3 px-2 md:px-20 tracking-wider text-center bg-gradient-to-r from-transparent via-gray-50 to-transparent whitespace-nowrap overflow-hidden text-ellipsis w-full">
+                  {lang === 'tr' ? 'Gerçeğin Peşinde, Geleceğin İzinde' : 'Di Şopa Rastiyê de, Li Ser Şopa Pêşerojê'}
+                </div>
               </div>
 
-              {/* Navigation and Language Section */}
-              <div className="w-full flex flex-wrap items-center justify-center gap-4 border-t border-gray-100 pt-4">
-                <div className="flex items-center gap-2">
+              {/* Language & External Links Toolbar */}
+              <div className="w-full flex items-center justify-center gap-2 py-2 md:py-4">
+                <div className="flex bg-black p-0.5 md:p-1 rounded-full shadow-lg border border-white/10 scale-90 md:scale-100">
                   <button 
                     onClick={() => { setLang('tr'); setSearchParams({ lang: 'tr' }); }}
-                    className={`px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${lang === 'tr' ? 'bg-brand-accent text-white shadow-md' : 'bg-gray-100 hover:bg-gray-200'}`}
+                    className={`px-3 py-1 md:px-4 md:py-1.5 rounded-full text-[9px] md:text-[10px] font-black tracking-widest transition-all ${lang === 'tr' ? 'bg-white text-black shadow-md' : 'text-gray-400 hover:text-white'}`}
                   >
-                    TÜRKÇE
+                    TR
                   </button>
                   <button 
                     onClick={() => { setLang('ku'); setSearchParams({ lang: 'ku' }); }}
-                    className={`px-4 py-2 rounded-full text-[11px] font-bold uppercase tracking-widest transition-all ${lang === 'ku' ? 'bg-brand-accent text-white shadow-md' : 'bg-gray-100 hover:bg-gray-200'}`}
+                    className={`px-3 py-1 md:px-4 md:py-1.5 rounded-full text-[9px] md:text-[10px] font-black tracking-widest transition-all ${lang === 'ku' ? 'bg-white text-black shadow-md' : 'text-gray-400 hover:text-white'}`}
                   >
-                    KURDÎ
+                    KU
                   </button>
                 </div>
-
-                <div className="h-4 w-px bg-gray-200 hidden md:block" />
 
                 <a 
                   href="https://www.patnosum.com" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-brand-primary text-white hover:bg-black rounded-full shadow-sm text-[11px] font-bold uppercase tracking-widest transition-all"
+                  className="flex items-center gap-2 px-4 py-1.5 md:px-6 md:py-2 bg-brand-primary text-white hover:bg-black rounded-full shadow-lg text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all border border-white/5 active:scale-95 scale-90 md:scale-100"
                 >
-                  <Globe size={14} className="text-brand-accent" />
-                  SİTE ANASAYFA
+                  <Globe size={12} className="text-brand-accent md:w-3.5 md:h-3.5" />
+                  <span className="hidden sm:inline">Site Anasayfa</span>
+                  <span className="sm:hidden">SİTE</span>
                 </a>
-
-                {isAdmin ? (
-                  <button onClick={() => setShowAdmin(true)} className="p-2 bg-brand-accent text-white rounded-full shadow-lg hover:scale-110 transition-all">
-                    <User size={18} />
-                  </button>
-                ) : (
-                  <button onClick={() => setShowLogin(true)} className="p-2 text-gray-400 hover:text-brand-accent transition-all">
-                    <User size={18} />
-                  </button>
-                )}
               </div>
             </div>
           </div>
+
+          {/* Scrolling Ticker (Breaking News) */}
+          <div className="bg-black text-white py-1.5 md:py-2.5 overflow-hidden relative border-y border-white/10 shadow-inner group">
+            <div className="w-full flex items-center">
+              <div className="bg-red-700 text-[9px] md:text-[10px] font-black px-4 py-1 md:px-5 md:py-1.5 mr-4 md:mr-6 whitespace-nowrap shadow-[10px_0_20px_black] relative z-20 scale-x-110 -skew-x-12">
+                <span className="inline-block skew-x-12">{lang === 'tr' ? 'SON DAKİKA' : 'NÛÇEYA DAWÎ'}</span>
+              </div>
+              <div className="relative flex-1 h-4 md:h-5 overflow-hidden">
+                <div className="absolute flex whitespace-nowrap animate-ticker group-hover:pause-ticker">
+                  {news.slice(0, 8).map((item, idx) => (
+                    <span 
+                      key={idx} 
+                      onClick={() => navigate(`/news/${item.id}?lang=${lang}`)}
+                      className="mx-6 md:mx-8 text-[10px] md:text-[11px] font-black tracking-widest hover:text-red-500 cursor-pointer transition-colors flex items-center gap-2 md:gap-3 uppercase"
+                    >
+                      <span className="w-1 md:w-1.5 h-1 md:h-1.5 bg-red-700 rounded-full"></span>
+                      {item.title?.[lang] || item.title?.tr || '...'}
+                    </span>
+                  ))}
+                  {/* Duplicate for seamless loop */}
+                  {news.slice(0, 8).map((item, idx) => (
+                    <span 
+                      key={`dup-${idx}`} 
+                      className="mx-6 md:mx-8 text-[10px] md:text-[11px] font-black tracking-widest flex items-center gap-2 md:gap-3 uppercase"
+                    >
+                      <span className="w-1 md:w-1.5 h-1 md:h-1.5 bg-red-700 rounded-full"></span>
+                      {item.title?.[lang] || item.title?.tr || '...'}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Navigation / Categories & Search Toggle */}
+          <nav className="bg-white border-b border-black/5 sticky top-0 md:relative z-40 shadow-sm md:shadow-none">
+            <div className="news-container">
+              <div className="flex items-center justify-between">
+                {/* Desktop Menu */}
+                <div className="hidden md:flex flex-1 overflow-x-auto overflow-y-hidden no-scrollbar py-3">
+                  <ul className="flex items-center gap-14">
+                    {CATEGORIES.map((cat) => (
+                      <li key={cat.id} className="shrink-0">
+                        <button
+                          onClick={() => {
+                            setActiveCategory(cat.id);
+                            navigate(`/?lang=${lang}`);
+                          }}
+                          className={`text-[11px] font-black uppercase tracking-[0.2em] transition-all relative pb-1 group whitespace-nowrap
+                            ${activeCategory === cat.id 
+                              ? 'text-red-700' 
+                              : 'text-gray-400 hover:text-black'}`}
+                        >
+                          {cat[lang].toUpperCase()}
+                          <span className={`absolute bottom-0 left-0 w-full h-0.5 bg-red-700 transition-transform duration-300 ${activeCategory === cat.id ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-50'}`}></span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Mobile Menu Button */}
+                <div className="md:hidden flex-1 py-3 flex items-center gap-4">
+                  <button 
+                    onClick={() => setShowCategories(!showCategories)}
+                    className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-full text-[10px] font-black tracking-widest uppercase active:scale-95 transition-all shadow-lg"
+                  >
+                    <Menu size={14} className={showCategories ? 'rotate-90 transition-transform' : 'transition-transform'} />
+                    {lang === 'tr' ? 'KATEGORİLER' : 'KATEGORÎ'}
+                    {activeCategory !== 'all' && (
+                      <span className="ml-2 pl-2 border-l border-white/20 text-red-500">
+                        {CATEGORIES.find(c => c.id === activeCategory)?.[lang].toUpperCase()}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 md:gap-4 pl-4 border-l border-gray-100 py-2 md:py-3 shrink-0">
+                  <AnimatePresence>
+                    {showSearch && (
+                      <motion.div 
+                        initial={{ width: 0, opacity: 0 }}
+                        animate={{ width: 160, opacity: 1 }}
+                        exit={{ width: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <input 
+                          autoFocus
+                          type="text" 
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder={lang === 'tr' ? 'Ara...' : 'Bigere...'}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-full px-4 py-1 text-[9px] font-medium outline-none focus:border-red-600 focus:ring-1 focus:ring-red-600"
+                        />
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <button 
+                    onClick={() => setShowSearch(!showSearch)}
+                    className={`p-1.5 md:p-2 rounded-full transition-all ${showSearch ? 'bg-red-700 text-white shadow-lg' : 'bg-white text-gray-400 hover:text-black hover:bg-gray-50 border border-gray-100'}`}
+                  >
+                    <Search size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </nav>
         </header>
 
-        {/* Adjusting padding-top to account for header */}
-        <div className={scrolled ? "pt-[180px]" : "pt-[220px]"} />
+        {/* Mobile Categories Dropdown */}
+        <AnimatePresence>
+          {showCategories && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="md:hidden fixed inset-x-0 top-[header-height] bg-white z-30 shadow-2xl border-b border-gray-100 py-6 px-4"
+              style={{ top: 'auto' }}
+            >
+              <div className="news-container">
+                <div className="grid grid-cols-2 gap-3 pb-8">
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => {
+                        setActiveCategory(cat.id);
+                        setShowCategories(false);
+                        navigate(`/?lang=${lang}`);
+                      }}
+                      className={`px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-widest text-left transition-all flex items-center justify-between
+                        ${activeCategory === cat.id 
+                          ? 'bg-red-700 text-white shadow-lg scale-95' 
+                          : 'bg-gray-50 text-gray-600 hover:bg-gray-100'}`}
+                    >
+                      {cat[lang]}
+                      {activeCategory === cat.id && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
+                    </button>
+                  ))}
+                </div>
+                <button 
+                  onClick={() => setShowCategories(false)}
+                  className="w-full py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest border-t border-gray-100"
+                >
+                  {lang === 'tr' ? 'KAPAT' : 'BIGIRE'}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* TICKER - Moved to prominent position */}
-        {breakingNews.length > 0 && (
-          <div className="bg-brand-primary text-white py-3 overflow-hidden border-b border-brand-accent/30 mt-4">
-            <div className="news-container flex items-center">
-              <div className="bg-brand-accent text-[10px] font-bold px-3 py-1 mr-6 rounded-sm whitespace-nowrap animate-pulse">
-                {t.breakingNews}
-              </div>
-              <div className="flex animate-[ticker_40s_linear_infinite] whitespace-nowrap gap-16 font-medium text-sm">
-                {breakingNews.map((item) => (
-                  <span key={item.id} className="cursor-pointer hover:text-brand-accent" onClick={() => navigate(`/news/${item.id}?lang=${lang}`)}>
-                    {item.title[lang] || item.title.tr}
-                  </span>
-                ))}
-              </div>
+        <main className="py-8">
+          {/* Slider moved here to be immediately below categories */}
+          {activeCategory === 'all' && !searchQuery && (
+            <div className="news-container mb-12">
+              <NewsSlider items={news.slice(0, 5)} lang={lang} />
             </div>
-          </div>
-        )}
+          )}
 
-        {/* SEARCH & FILTERS */}
-        <div className="bg-gray-50 border-b border-gray-100">
-           <div className="news-container py-4 flex flex-col md:flex-row items-center gap-6">
-              <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-gray-200 flex-1 w-full">
-                <Search className="text-gray-400" size={18} />
-                <input 
-                  type="text" 
-                  value={searchQuery} 
-                  onChange={(e) => setSearchQuery(e.target.value)} 
-                  placeholder={lang === 'tr' ? 'Haberlerde ara...' : 'Di nûçeyan de bigere...'} 
-                  className="bg-transparent flex-1 outline-none text-sm font-medium" 
-                />
-              </div>
-              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto">
-                 {CATEGORIES.map(cat => (
-                   <button 
-                    key={cat.id} 
-                    onClick={() => { setActiveCategory(cat.id); navigate(`/?lang=${lang}`); }}
-                    className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${activeCategory === cat.id ? 'bg-brand-primary text-white shadow-lg' : 'bg-white text-gray-400 hover:bg-gray-100'}`}
-                   >
-                     {cat[lang]}
-                   </button>
-                 ))}
-              </div>
-           </div>
-        </div>
-
-        <main className="py-12">
           <Routes>
             <Route path="/" element={
               <div className="news-container">
                 <div className="flex flex-col lg:flex-row gap-12">
                   <div className="lg:w-[70%]">
-                    {activeCategory === 'all' && !searchQuery && (
-                      <div className="mb-16">
-                        <NewsSlider items={news.filter(n => n.status !== 'draft').slice(0, 5)} lang={lang} />
-                      </div>
-                    )}
                     <div className="grid md:grid-cols-2 gap-x-8 gap-y-16">
                       {filteredNews.length > 0 ? (
                         filteredNews.slice(0, 10).map(item => <NewsCard key={item.id} item={item} lang={lang} />)
@@ -328,12 +446,6 @@ export default function App() {
             />
           )}
         </AnimatePresence>
-
-        <style>{`
-          @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-          .no-scrollbar::-webkit-scrollbar { display: none; }
-          .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        `}</style>
       </div>
     </ErrorBoundary>
   );

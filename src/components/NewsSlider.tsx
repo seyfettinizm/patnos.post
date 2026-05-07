@@ -44,7 +44,7 @@ export const NewsSlider = ({ items, lang }: NewsSliderProps) => {
   };
 
   return (
-    <div className="relative w-full bg-brand-primary overflow-hidden rounded-2xl shadow-2xl group h-[500px] md:h-[600px]">
+    <div className="relative w-full bg-brand-primary overflow-hidden rounded-2xl shadow-2xl group aspect-[16/10] md:aspect-video lg:h-[650px]">
       <AnimatePresence mode="wait">
         <motion.div
           key={currentIndex}
@@ -62,21 +62,21 @@ export const NewsSlider = ({ items, lang }: NewsSliderProps) => {
                 className="w-full h-full object-cover transition-transform duration-[10s] group-hover:scale-110"
                 referrerPolicy="no-referrer"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0a] via-[#0a0a0a]/70 to-transparent" />
               
-              <div className="absolute inset-0 flex flex-col justify-end pb-32 px-10 md:px-16 max-w-7xl mx-auto z-20">
-                <div className="flex items-center gap-3 mb-6">
-                  <span className="bg-brand-accent text-white text-[10px] font-bold uppercase tracking-[0.2em] px-4 py-1.5 rounded shadow-lg">
+              <div className="absolute inset-x-0 bottom-0 flex flex-col justify-end pb-12 md:pb-32 px-6 md:px-16 max-w-7xl mx-auto z-20">
+                <div className="flex items-center gap-3 mb-3 md:mb-6">
+                  <span className="bg-brand-accent text-white text-[9px] md:text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 md:px-4 md:py-1.5 rounded shadow-lg">
                     {categoryLabel}
                   </span>
-                  <div className="h-[1px] w-12 bg-white/30"></div>
-                  <span className="text-white/80 text-[10px] font-black tracking-widest uppercase">{currentItem.date}</span>
+                  <div className="h-[1px] w-8 md:w-12 bg-white/30"></div>
+                  <span className="text-white/80 text-[9px] md:text-[10px] font-black tracking-widest uppercase">{currentItem.date}</span>
                 </div>
-                <h2 className="text-3xl md:text-5xl lg:text-7xl font-anton text-white leading-[1.2] mb-6 max-w-4xl tracking-normal drop-shadow-2xl">
+                <h2 className="text-xl sm:text-2xl md:text-5xl lg:text-7xl font-anton text-white leading-[1.2] mb-3 md:mb-6 max-w-5xl tracking-normal drop-shadow-2xl">
                   {displayTitle}
                 </h2>
-                <div className="flex items-center gap-2 text-white/90 text-sm font-bold uppercase tracking-widest">
-                  <span className="w-8 h-[2px] bg-brand-accent"></span>
+                <div className="flex items-center gap-2 text-white/90 text-[10px] md:text-sm font-bold uppercase tracking-widest">
+                  <span className="w-6 md:w-8 h-[2px] bg-brand-accent"></span>
                   <span>{currentItem.author}</span>
                 </div>
               </div>

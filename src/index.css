@@ -1,19 +1,27 @@
-@import url('https://fonts.googleapis.com/css2?family=Anton&family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Yesteryear&display=swap');
 @import "tailwindcss";
 
 @theme {
   --font-sans: "Prompt", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Prompt", serif;
   --font-anton: "Anton", sans-serif;
+  --font-yesteryear: "Yesteryear", cursive;
   
   --color-brand-primary: #101010;
   --color-brand-accent: #b20000;
   --color-brand-bg: #fcfcfc;
+
+  --animate-ticker: ticker 60s linear infinite;
+
+  @keyframes ticker {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
 }
 
 @layer base {
   body {
-    @apply bg-brand-bg text-brand-primary font-sans antialiased;
+    @apply bg-brand-bg text-brand-primary font-sans antialiased overflow-x-hidden;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
@@ -23,6 +31,19 @@
     @apply max-w-[1400px] mx-auto px-4 md:px-8;
   }
   
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .pause-ticker {
+    animation-play-state: paused !important;
+  }
+
   .glass-card {
     @apply bg-white/80 backdrop-blur-md border border-gray-200/50 shadow-xl;
   }

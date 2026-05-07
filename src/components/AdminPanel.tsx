@@ -400,8 +400,7 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
           category: 'general',
           date: new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
           author: 'Wix Import',
-          readTime: calculateReadTime(contentTr),
-          status: 'published'
+          readTime: calculateReadTime(contentTr)
         });
         
         await new Promise(r => setTimeout(r, 1000));
@@ -837,11 +836,6 @@ export const AdminPanel = ({ onClose, onLogout, lang }: AdminPanelProps) => {
                         >
                           <div className="relative w-20 h-20 md:w-28 md:h-28 shrink-0 rounded-xl overflow-hidden bg-gray-100">
                             <img src={item.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-500" alt="" />
-                            {item.status === 'draft' && (
-                              <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                <span className="text-[8px] font-bold text-white px-2 py-0.5 border border-white/30 rounded uppercase tracking-tighter">TASLAK</span>
-                              </div>
-                            )}
                           </div>
                           
                           <div className="flex-1 min-w-0">
