@@ -35,18 +35,28 @@ export const NewsDetail = ({ item, lang, onClose }: NewsDetailProps) => {
 
   const handleFacebookShare = () => {
     const width = 600;
-    const height = 700;
+    const height = 450;
     const left = (window.innerWidth - width) / 2;
     const top = (window.innerHeight - height) / 2;
     
-    const win = window.open(
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`, 
-      'facebook-share-dialog', 
-      `width=${width},height=${height},top=${top},left=${left},toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
-    );
+    // Facebook sharer URL'si
+    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
 
-    if (!win) {
-      alert(lang === 'tr' ? 'Lütfen pop-up engelleyicinizi kapatın.' : 'Ji kerema xwe astengkerê pop-upê bigirin.');
+    try {
+      // Önce pencereyi açmayı dene
+      const win = window.open(
+        fbUrl, 
+        'facebook-share-dialog', 
+        `width=${width},height=${height},top=${top},left=${left},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
+      );
+
+      // Eğer pencere engellendiyse veya açılamadıysa mevcut sekmede aç
+      if (!win || win.closed || typeof win.closed === 'undefined') {
+        window.location.href = fbUrl;
+      }
+    } catch (e) {
+      // Hata durumunda yeni sekmede açmayı dene
+      window.open(fbUrl, '_blank');
     }
   };
 
