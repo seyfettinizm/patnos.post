@@ -35,51 +35,54 @@ export const NewsDetail = ({ item, lang, onClose }: NewsDetailProps) => {
 
   const handleFacebookShare = () => {
     const width = 600;
-    const height = 450;
+    const height = 600;
     const left = (window.innerWidth - width) / 2;
     const top = (window.innerHeight - height) / 2;
     
-    // Facebook sharer URL'si
-    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
+    // Canonical URL for Facebook - absolute, clean, and includes the lang for the crawler
+    const shareLink = `${window.location.origin}${window.location.pathname}?lang=${lang}`;
+    const fbUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}&display=popup`;
 
     try {
-      // Önce pencereyi açmayı dene
-      const win = window.open(
-        fbUrl, 
-        'facebook-share-dialog', 
-        `width=${width},height=${height},top=${top},left=${left},toolbar=no,location=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
-      );
-
-      // Eğer pencere engellendiyse veya açılamadıysa mevcut sekmede aç
-      if (!win || win.closed || typeof win.closed === 'undefined') {
-        window.location.href = fbUrl;
+      // For mobile devices, try native sharing first if available (works better with apps)
+      if (typeof navigator.share !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        navigator.share({
+          title: displayTitle,
+          text: displayTitle,
+          url: shareLink
+        }).catch(() => {
+          // Fallback to pop-up
+          window.open(fbUrl, 'fbShare', `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`);
+        });
+      } else {
+        const win = window.open(
+          fbUrl, 
+          'fbShare', 
+          `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
+        );
+        if (!win || win.closed || typeof win.closed === 'undefined') {
+          window.open(fbUrl, '_blank');
+        }
       }
     } catch (e) {
-      // Hata durumunda yeni sekmede açmayı dene
-      window.open(fbUrl, '_blank');
+      window.location.href = fbUrl;
     }
+  };
+
+  const handleWhatsAppShare = () => {
+    const text = `${displayTitle}\n\n${shareUrl}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
   const handleTwitterShare = () => {
-    const width = 600;
-    const height = 450;
-    const left = (window.innerWidth - width) / 2;
-    const top = (window.innerHeight - height) / 2;
-
-    const win = window.open(
-      `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`, 
-      'twitter-share-dialog', 
-      `width=${width},height=${height},top=${top},left=${left},toolbar=no,location=no,directories=no,status=no,menubar=no,scrollbars=yes,resizable=yes`
-    );
-
-    if (!win) {
-      alert(lang === 'tr' ? 'Lütfen pop-up engelleyicinizi kapatın.' : 'Ji kerema xwe astengkerê pop-upê bigirin.');
-    }
+    const twUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(shareTitle)}`;
+    window.open(twUrl, '_blank');
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(shareUrl);
-    alert(lang === 'tr' ? 'Bağlantı kopyalandı!' : 'Lînk hat kopîkirin!');
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      alert(lang === 'tr' ? 'Bağlantı kopyalandı!' : 'Lînk hat kopîkirin!');
+    });
   };
 
   const handleWebShare = async () => {
@@ -222,19 +225,31 @@ export const NewsDetail = ({ item, lang, onClose }: NewsDetailProps) => {
                 <div className="flex gap-2">
                   <button 
                     onClick={handleFacebookShare}
-                    className="p-3 bg-gray-50 hover:bg-[#1877F2] hover:text-white rounded-full transition-all"
+                    className="p-3 bg-gray-50 hover:bg-[#1877F2] hover:text-white rounded-full transition-all shadow-sm border border-gray-100"
+                    title="Facebook"
                   >
                     <Facebook size={20} />
                   </button>
                   <button 
+                    onClick={handleWhatsAppShare}
+                    className="p-3 bg-gray-50 hover:bg-[#25D366] hover:text-white rounded-full transition-all shadow-sm border border-gray-100"
+                    title="WhatsApp"
+                  >
+                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.319 1.592 5.548 0 10.058-4.51 10.06-10.059.002-2.689-1.047-5.215-2.951-7.121-1.905-1.904-4.432-2.951-7.125-2.952-5.548 0-10.06 4.51-10.063 10.06-.001 2.128.569 4.14 1.645 5.86l-.997 3.635 3.712-.974zm11.455-7.79c-.27-.136-1.597-.788-1.845-.878-.247-.09-.427-.136-.607.136-.18.271-.697.878-.855 1.058-.158.179-.315.203-.585.068-.27-.136-1.14-.42-2.171-1.338-.803-.715-1.344-1.598-1.502-1.868-.158-.271-.017-.417.118-.552.122-.122.27-.315.405-.473.136-.158.18-.271.271-.451.09-.179.044-.339-.022-.472-.067-.136-.607-1.463-.831-2.004-.218-.528-.439-.456-.607-.464-.158-.008-.338-.01-.518-.01-.18 0-.473.067-.72.339-.248.271-.944.924-.944 2.256 0 1.331.968 2.615 1.103 2.801.136.18 1.907 2.911 4.62 4.085.645.278 1.149.444 1.542.569.648.206 1.238.177 1.704.108.519-.077 1.597-.653 1.822-1.284.225-.631.225-1.172.158-1.284-.067-.113-.247-.203-.517-.34z"/>
+                    </svg>
+                  </button>
+                  <button 
                     onClick={handleTwitterShare}
-                    className="p-3 bg-gray-50 hover:bg-[#1DA1F2] hover:text-white rounded-full transition-all"
+                    className="p-3 bg-gray-50 hover:bg-[#1DA1F2] hover:text-white rounded-full transition-all shadow-sm border border-gray-100"
+                    title="X (Twitter)"
                   >
                     <Twitter size={20} />
                   </button>
                   <button 
                     onClick={handleCopyLink}
-                    className="p-3 bg-gray-50 hover:bg-brand-accent hover:text-white rounded-full transition-all"
+                    className="p-3 bg-gray-50 hover:bg-brand-accent hover:text-white rounded-full transition-all shadow-sm border border-gray-100"
+                    title={lang === 'tr' ? 'Bağlantıyı Kopyala' : 'Lînkê Kopî Bike'}
                   >
                     <LinkIcon size={20} />
                   </button>

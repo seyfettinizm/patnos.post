@@ -34,12 +34,17 @@ const injectMetaTags = async (html: string, req: express.Request) => {
   const protocol = req.headers['x-forwarded-proto'] || 'https';
   const appUrl = (process.env.APP_URL || `${protocol}://${host}`).replace(/\/$/, '');
   
-  // Use req.originalUrl to preserve the language query param for Facebook
-  const fullUrl = `${appUrl}${req.originalUrl}`;
+  // Prepare lang and canonical URL
+  let lang = (req.query.lang as string) || 'tr';
+  if (!['tr', 'ku'].includes(lang)) lang = 'tr';
+  
+  // Extract newsId for canonical URL consistency
+  const pathParts = req.path.split('/').filter(Boolean);
+  const isNews = pathParts[0] === 'news' && pathParts[1];
+  const canonicalPath = isNews ? `/news/${pathParts[1]}` : req.path;
+  const fullUrl = `${appUrl}${canonicalPath}?lang=${lang}`;
 
   try {
-    let lang = (req.query.lang as string) || 'tr';
-    if (!['tr', 'ku'].includes(lang)) lang = 'tr';
     
     // Default metadata for the site
     if (lang === 'ku') {
@@ -58,20 +63,24 @@ const injectMetaTags = async (html: string, req: express.Request) => {
     if (supabaseKey && supabaseUrl) {
       const supabase = createClient(supabaseUrl, supabaseKey);
 
+      // Fetch with a 3s timeout to prevent hanging the crawler
+      const fetchWithTimeout = async (promise: Promise<any>, ms: number) => {
+        const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), ms));
+        return Promise.race([promise, timeout]);
+      };
+
       // Fetch site settings for a better default image if possible
       try {
-        const { data: settingsData } = await supabase
-          .from('settings')
-          .select('value')
-          .eq('id', 'header_settings')
-          .maybeSingle();
+        const { data: settingsData } = await fetchWithTimeout(
+          supabase.from('settings').select('value').eq('id', 'header_settings').maybeSingle() as any,
+          2000
+        ) as any;
         
         if (settingsData?.value?.leftImageUrl) {
           image = settingsData.value.leftImageUrl;
-          console.log(`[MetaTags] Using site logo as base image`);
         }
       } catch (err) {
-        console.warn(`[MetaTags] Settings fetch skipped`);
+        console.warn(`[MetaTags] Settings fetch timed out or failed`);
       }
 
       // Improved newsId extraction
@@ -79,28 +88,30 @@ const injectMetaTags = async (html: string, req: express.Request) => {
       let newsId = (parts[0] === 'news' && parts[1]) ? parts[1] : null;
       
       if (newsId && newsId.length > 5) {
-        console.log(`[MetaTags] Detected news ID: ${newsId}`);
-        const { data: newsItem, error } = await supabase
-          .from('news')
-          .select('*')
-          .eq('id', newsId)
-          .maybeSingle();
+        try {
+          const { data: newsItem, error } = await fetchWithTimeout(
+            supabase.from('news').select('*').eq('id', newsId).maybeSingle() as any,
+            2500 // Balanced timeout for crawler
+          ) as any;
 
-        if (newsItem && !error) {
-          const newsTitle = newsItem.title?.[lang] || newsItem.title?.tr || newsItem.title || 'Haber';
-          const newsExcerpt = newsItem.excerpt?.[lang] || newsItem.excerpt?.tr || (newsItem.content?.[lang] || newsItem.content?.tr || '').substring(0, 200) || description;
-          
-          title = `${newsTitle} | The Patnos Post`;
-          description = newsExcerpt;
-          
-          if (newsItem.imageUrl) {
-            image = newsItem.imageUrl.startsWith('http') 
-              ? newsItem.imageUrl 
-              : `${appUrl}${newsItem.imageUrl.startsWith('/') ? '' : '/'}${newsItem.imageUrl}`;
+          if (newsItem && !error) {
+            const newsTitle = newsItem.title?.[lang] || newsItem.title?.tr || newsItem.title || 'Haber';
+            // Clean excerpts to avoid breaking HTML attributes
+            const cleanExcerpt = (newsItem.excerpt?.[lang] || newsItem.excerpt?.tr || (newsItem.content?.[lang] || newsItem.content?.tr || '').substring(0, 160))
+              .replace(/\s+/g, ' ')
+              .trim();
+            
+            title = newsTitle;
+            description = cleanExcerpt;
+            
+            if (newsItem.imageUrl) {
+              image = newsItem.imageUrl.startsWith('http') 
+                ? newsItem.imageUrl 
+                : `${appUrl}${newsItem.imageUrl.startsWith('/') ? '' : '/'}${newsItem.imageUrl}`;
+            }
           }
-          console.log(`[MetaTags] Successfully prepared metadata for: ${newsTitle}`);
-        } else if (error) {
-          console.warn(`[MetaTags] Supabase fetch error:`, error.message);
+        } catch (err) {
+          // Fallback to default metadata on timeout - common for crawlers
         }
       }
     }
